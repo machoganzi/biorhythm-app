@@ -1,0 +1,16 @@
+<!-- res/values/themes.xml -->
+<resources>
+    <!-- 기존 AppCompat 테마를 아래와 같이 MaterialComponents로 변경 -->
+    <style name="Theme.Biorhythm" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary 색상 지정 -->
+        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimaryVariant">@color/black</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Surface 계열 색상 (TextView의 colorOnSurface가 이 테마에 정의됩니다) -->
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/black</item>
+
+        <!-- 필요하면 추가로 shape, typography 등 정의 가능 -->
+    </style>
+</resources>

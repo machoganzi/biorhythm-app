@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <!-- 1. 로그인 화면 -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.jjangdol.biorhythm.ui.login.LoginFragment"
+        android:label="로그인" />
+        <action
+            android:id="@+id/action_login_to_main"
+            app:destination="@id/mainFragment" />
+    <!-- 2. 메인 화면 (하단탭 등을 포함할 수 있는 컨테이너) -->
+    <fragment
+        android:id="@+id/mainFragment"
+        android:name="com.jjangdol.biorhythm.ui.main.MainFragment"
+        android:label="메인" >
+
+    </fragment>
+
+    <!-- 3. 체크리스트 화면 -->
+    <fragment
+        android:id="@+id/checklistFragment"
+        android:name="com.jjangdol.biorhythm.ui.checklist.ChecklistFragment"
+        android:label="체크리스트" />
+
+    <!-- 4. 결과 화면 -->
+    <fragment
+        android:id="@+id/resultFragment"
+        android:name="com.jjangdol.biorhythm.ui.result.ResultFragment"
+        android:label="결과" />
+
+    <!-- 5. 관리자 화면 -->
+    <fragment
+        android:id="@+id/adminFragment"
+        android:name="com.jjangdol.biorhythm.ui.admin.AdminFragment"
+        android:label="관리자 모드" />
+
+    <fragment
+        android:id="@+id/adminResultsFragment"
+        android:name="com.jjangdol.biorhythm.ui.admin.AdminResultsFragment"
+        android:label="종합 보기" />
+
+
+</navigation>

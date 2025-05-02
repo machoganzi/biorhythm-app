@@ -21,6 +21,15 @@ output.json
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+# OS
+.DS_Store
 
 # Keystore files
 *.jks

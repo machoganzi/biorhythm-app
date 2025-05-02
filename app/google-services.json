@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "287534512164",
+    "project_id": "capstone-biorhythm",
+    "storage_bucket": "capstone-biorhythm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:287534512164:android:cb0f09a363d22b278b80b1",
+        "android_client_info": {
+          "package_name": "com.jjangdol.biorhythm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCU1a9ev0KqbSmSdHKeg33L5Fq4ku8--ZE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
