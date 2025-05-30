@@ -9,3 +9,4 @@ data class ChecklistConfig(
     val question: String = "", // 문항 텍스트
     val weight: Int = 10       // 기본 가중치
 )
+ 
