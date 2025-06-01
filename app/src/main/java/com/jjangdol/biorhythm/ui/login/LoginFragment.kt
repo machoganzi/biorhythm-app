@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
-import android.widget.Toast.LENGTH_SHORT
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -31,42 +30,42 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         _binding = FragmentLoginBinding.bind(view)
 
-        // 1) Spinner에 부서 목록 세팅
-        val depts = listOf("생산", "품질", "안전", "관리")
-        binding.spinnerDept.adapter =
-            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, depts)
-                .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        // 부서 목록 설정
+        val depts = listOf("--부서 선택--", "생산", "품질", "안전", "관리")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, depts)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerDept.adapter = adapter
 
-        // 2) DatePickerDialog 연결
+        // 생년월일 선택
         binding.tvDob.setOnClickListener {
             val today = LocalDate.now()
             DatePickerDialog(requireContext(),
                 { _, y, m, d ->
-                    val dob = LocalDate.of(y, m+1, d)
+                    val dob = LocalDate.of(y, m + 1, d)
                     binding.tvDob.text = dob.format(dateFormatter)
                 },
                 today.year, today.monthValue - 1, today.dayOfMonth
             ).show()
         }
 
-        // 3) 로그인 버튼
+        // 로그인 버튼 클릭
         binding.btnLogin.setOnClickListener {
-            val dept = binding.spinnerDept.selectedItem as String
+            val dept = binding.spinnerDept.selectedItem?.toString() ?: ""
             val name = binding.etName.text.toString()
             val dob = binding.tvDob.text.toString()
+
             vm.login(dept, name, dob)
 
-            // 로그인 정보 저장
+            // SharedPreferences 저장
             val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
             prefs.edit()
                 .putString("dob", dob)
                 .putString("user_name", name)
                 .putString("user_dept", dept)
                 .apply()
-
         }
 
-        // 4) ViewModel 상태 관찰
+        // 상태 관찰
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             vm.state.collectLatest { state ->
                 when (state) {
@@ -79,8 +78,8 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                     }
                     is LoginState.Error -> {
                         binding.btnLogin.isEnabled = true
-                        binding.btnLogin.text = "로그인"
-                        Toast.makeText(requireContext(), state.message, LENGTH_SHORT).show()
+                        binding.btnLogin.text = getString(R.string.login)
+                        Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
                     }
                     else -> Unit
                 }
