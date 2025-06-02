@@ -1,127 +1,238 @@
-// app/src/main/java/com/jjangdol/biorhythm/ui/checklist/ChecklistFragment.kt
 package com.jjangdol.biorhythm.ui.checklist
 
 import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.jjangdol.biorhythm.R
-import com.jjangdol.biorhythm.databinding.FragmentChecklistBinding
-import com.jjangdol.biorhythm.model.ChecklistResult
-import com.jjangdol.biorhythm.model.ChecklistItem
-import com.jjangdol.biorhythm.util.ScoreCalculator
-import com.jjangdol.biorhythm.vm.BiorhythmViewModel
-import com.jjangdol.biorhythm.vm.ChecklistViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.jjangdol.biorhythm.R
+import com.jjangdol.biorhythm.databinding.FragmentChecklistBinding
+import com.jjangdol.biorhythm.model.ChecklistResult
+import com.jjangdol.biorhythm.model.SafetyCheckSession
+import com.jjangdol.biorhythm.util.ScoreCalculator
+import com.jjangdol.biorhythm.vm.BiorhythmViewModel
+import com.jjangdol.biorhythm.vm.ChecklistViewModel
+import com.jjangdol.biorhythm.vm.SafetyCheckViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @AndroidEntryPoint
 class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
 
-    private var _b: FragmentChecklistBinding? = null
-    private val b get() = _b!!
+    private var _binding: FragmentChecklistBinding? = null
+    private val binding get() = _binding!!
 
-    private val vm: ChecklistViewModel by viewModels()
-    private val bioVm: BiorhythmViewModel by viewModels()
+    private val checklistViewModel: ChecklistViewModel by viewModels()
+    private val biorhythmViewModel: BiorhythmViewModel by viewModels()
+    private val safetyCheckViewModel: SafetyCheckViewModel by activityViewModels()
 
     private val dateFormatter = DateTimeFormatter.ISO_DATE
+    private lateinit var sessionId: String
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        _b = FragmentChecklistBinding.bind(view)
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentChecklistBinding.bind(view)
 
-        // RecyclerView
-        b.rvChecklist.layoutManager = LinearLayoutManager(requireContext())
-        val adapter = ChecklistAdapter(emptyList()) { pos, yes ->
-            vm.answerChanged(pos, yes)
+        // 1) 새 세션 시작
+        sessionId = UUID.randomUUID().toString()
+        initializeSafetyCheckSession()
+
+        // 2) UI 초기화
+        setupRecyclerView()
+        loadUserData()
+        setupSubmitButton()
+        observeViewModel()
+    }
+
+    private fun initializeSafetyCheckSession() {
+        val uid = Firebase.auth.currentUser?.uid ?: return
+        val session = SafetyCheckSession(
+            sessionId = sessionId,
+            userId = uid,
+            startTime = System.currentTimeMillis()
+        )
+        safetyCheckViewModel.startNewSession(session)
+    }
+
+    private fun setupRecyclerView() {
+        val adapter = ChecklistAdapter(emptyList()) { position, isYes ->
+            checklistViewModel.answerChanged(position, isYes)
         }
-        b.rvChecklist.adapter = adapter
 
-        // 실시간 항목 구독
+        binding.rvChecklist.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            this.adapter = adapter
+            setHasFixedSize(true)
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
-            vm.items.collect { list ->
-                adapter.updateItems(list)
-            }
-        }
+            checklistViewModel.items.collect { items ->
+                adapter.updateItems(items)
 
-        // SharedPreferences에서 유저 정보 로드
-        val prefs = requireContext()
-            .getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        val dobStr = prefs.getString("dob", LocalDate.now().format(dateFormatter))!!
-        val name   = prefs.getString("user_name", "")!!
-        val dept   = prefs.getString("user_dept", "")!!
+                // 전체/완료 개수 업데이트
+                val total = items.size
+                val completed = items.count { it.answeredYes != null }
+                val rate = if (total > 0) (completed * 100 / total) else 0
 
-        // 바이오리듬 로드
-        val dob = LocalDate.parse(dobStr, dateFormatter)
-        bioVm.load(dob)
+                binding.tvTotalCount.text = total.toString()
+                binding.tvCompletedCount.text = completed.toString()
+                binding.tvCompletionRate.text = "$rate%"
 
-        // 제출 버튼
-        b.btnSubmit.setOnClickListener {
-            lifecycleScope.launch {
-                // 체크리스트 점수
-                val items = vm.items.value
-                val checklistScore = ScoreCalculator.calcChecklistScore(items)
+                // 진행률 바 업데이트 (max가 total이므로 progress = completed)
+                binding.checklistProgressBar.max = total
+                binding.checklistProgressBar.progress = completed
 
-                // 오늘자 바이오리듬
-                val todayDate = LocalDate.now()
-                val todayData = bioVm.data.value
-                    .firstOrNull { it.date == todayDate }
-                if (todayData == null) {
-                    Toast.makeText(requireContext(), "바이오리듬 데이터 없음", Toast.LENGTH_SHORT).show()
-                    return@launch
-                }
-                val bioIndex = ScoreCalculator.calcBiorhythmIndex(todayData)
-
-                // 최종점수
-                val finalScore = ScoreCalculator.calcFinalScore(checklistScore, bioIndex)
-
-                // Firestore에 저장 (results/{date}/entries/{uid})
-                val today = todayDate.format(dateFormatter)
-                val uid   = Firebase.auth.currentUser!!.uid
-
-                val result = ChecklistResult(
-                    userId = uid,
-                    name = name,
-                    dept = dept,
-                    checklistScore = checklistScore,
-                    biorhythmIndex = bioIndex,
-                    finalScore = finalScore,
-                    date = today
-                )
-
-                Firebase.firestore
-                    .collection("results")
-                    .document(today)
-                    .collection("entries")
-                    .document(uid)
-                    .set(result)
-                    .addOnSuccessListener {
-                        Toast.makeText(requireContext(), "제출 완료", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(requireContext(), "제출 실패", Toast.LENGTH_SHORT).show()
-                    }
-                Firebase.firestore
-                    .collection("results")
-                    .document(uid)
-                    .collection("daily")
-                    .document(today)
-                    .set(result)
+                // 제출 버튼 활성화 여부
+                binding.btnSubmit.isEnabled = items.all { it.answeredYes != null }
             }
         }
     }
 
+    private fun loadUserData() {
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dobStr = prefs.getString("dob", LocalDate.now().format(dateFormatter))!!
+        val dob = LocalDate.parse(dobStr, dateFormatter)
+        biorhythmViewModel.load(dob)
+    }
+
+    private fun setupSubmitButton() = with(binding) {
+        btnSubmit.setOnClickListener { submitChecklistAndProceed() }
+    }
+
+    private fun observeViewModel() {
+        safetyCheckViewModel.sessionState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is SafetyCheckViewModel.SessionState.Loading -> {
+                    binding.loadingOverlay.visibility = View.VISIBLE
+                    binding.btnSubmit.isEnabled = false
+                }
+                is SafetyCheckViewModel.SessionState.Success -> {
+                    binding.loadingOverlay.visibility = View.GONE
+                    navigateToTremorMeasurement()
+                }
+                is SafetyCheckViewModel.SessionState.Error -> {
+                    binding.loadingOverlay.visibility = View.GONE
+                    binding.btnSubmit.isEnabled = true
+                    Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    binding.loadingOverlay.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun submitChecklistAndProceed() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                binding.loadingOverlay.visibility = View.VISIBLE
+                binding.btnSubmit.isEnabled = false
+
+                // 1) 점수 계산
+                val items = checklistViewModel.items.value
+                val checklistScore = ScoreCalculator.calcChecklistScore(items)
+
+                // 2) 오늘자 바이오리듬
+                val today = LocalDate.now()
+                val todayData = biorhythmViewModel.data.value
+                    .firstOrNull { it.date == today }
+
+                if (todayData == null) {
+                    showError("바이오리듬 데이터를 불러올 수 없습니다")
+                    return@launch
+                }
+                val bioIndex = ScoreCalculator.calcBiorhythmIndex(todayData)
+
+                // 3) 세션 업데이트
+                safetyCheckViewModel.updateChecklistResults(
+                    checklistItems = items,
+                    checklistScore = checklistScore,
+                    biorhythmIndex = bioIndex
+                )
+
+                // 4) Firebase 기록 (호환용)
+                saveResultToFirestore(checklistScore, bioIndex)
+
+            } catch (e: Exception) {
+                showError("오류가 발생했습니다: ${e.message}")
+            }
+        }
+    }
+
+    private fun saveResultToFirestore(checklistScore: Int, bioIndex: Int) {
+        val today = LocalDate.now().format(dateFormatter)
+        val uid = Firebase.auth.currentUser?.uid ?: return
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
+        val result = ChecklistResult(
+            userId = uid,
+            name = prefs.getString("user_name", "") ?: "",
+            dept = prefs.getString("user_dept", "") ?: "",
+            checklistScore = checklistScore,
+            biorhythmIndex = bioIndex,
+            finalScore = ScoreCalculator.calcFinalScore(checklistScore, bioIndex),
+            date = today
+        )
+
+        Firebase.firestore.collection("results")
+            .document(today)
+            .collection("entries")
+            .document(uid)
+            .set(result)
+            .addOnSuccessListener {
+                // 중복으로 저장 (uid 기준)
+                Firebase.firestore.collection("results")
+                    .document(uid)
+                    .collection("daily")
+                    .document(today)
+                    .set(result)
+                    .addOnSuccessListener {
+                        binding.loadingOverlay.visibility = View.GONE
+                        Toast.makeText(requireContext(), "제출 완료", Toast.LENGTH_SHORT).show()
+                        navigateToTremorMeasurement()
+                    }
+                    .addOnFailureListener { e ->
+                        showError("제출 실패: ${e.message}")
+                    }
+            }
+            .addOnFailureListener { e ->
+                showError("제출 실패: ${e.message}")
+            }
+    }
+
+    private fun navigateToTremorMeasurement() {
+        try {
+            val bundle = bundleOf("sessionId" to sessionId)
+            requireActivity()
+                .findNavController(R.id.navHostFragment)
+                .navigate(R.id.tremorMeasurementFragment, bundle)
+        } catch (e: Exception) {
+            showError("화면 이동 실패: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    private fun showError(msg: String) {
+        binding.loadingOverlay.visibility = View.GONE
+        binding.btnSubmit.isEnabled = true
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
-        _b = null
+        _binding = null
     }
 }

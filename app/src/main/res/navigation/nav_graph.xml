@@ -1,47 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/loginFragment">
+
+    <!-- 글로벌 액션 추가 -->
+    <action
+        android:id="@+id/action_global_to_history"
+        app:destination="@id/historyFragment" />
 
     <!-- 1. 로그인 화면 -->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.jjangdol.biorhythm.ui.login.LoginFragment"
-        android:label="로그인" />
+        android:label="로그인"
+        tools:layout="@layout/fragment_login">
         <action
             android:id="@+id/action_login_to_main"
-            app:destination="@id/mainFragment" />
-    <!-- 2. 메인 화면 (하단탭 등을 포함할 수 있는 컨테이너) -->
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- 2. 메인 화면 -->
     <fragment
         android:id="@+id/mainFragment"
         android:name="com.jjangdol.biorhythm.ui.main.MainFragment"
-        android:label="메인" >
-
+        android:label="메인"
+        tools:layout="@layout/fragment_main">
+        <action
+            android:id="@+id/action_main_to_checklist"
+            app:destination="@id/checklistFragment" />
+        <action
+            android:id="@+id/action_main_to_result"
+            app:destination="@id/resultFragment" />
+        <action
+            android:id="@+id/action_main_to_admin"
+            app:destination="@id/adminFragment" />
+        <action
+            android:id="@+id/action_main_to_history"
+            app:destination="@id/historyFragment" />
     </fragment>
 
     <!-- 3. 체크리스트 화면 -->
     <fragment
         android:id="@+id/checklistFragment"
         android:name="com.jjangdol.biorhythm.ui.checklist.ChecklistFragment"
-        android:label="체크리스트" />
+        android:label="체크리스트"
+        tools:layout="@layout/fragment_checklist">
+        <action
+            android:id="@+id/action_checklist_to_tremor"
+            app:destination="@id/tremorMeasurementFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
-    <!-- 4. 결과 화면 -->
+    <!-- 4. 손떨림 측정 화면 -->
+    <fragment
+        android:id="@+id/tremorMeasurementFragment"
+        android:name="com.jjangdol.biorhythm.ui.measurement.TremorMeasurementFragment"
+        android:label="손떨림 측정"
+        tools:layout="@layout/fragment_tremor_measurement">
+        <argument
+            android:name="sessionId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_tremor_to_pupil"
+            app:destination="@id/pupilMeasurementFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <!-- 5. 피로도 측정 화면 -->
+    <fragment
+        android:id="@+id/pupilMeasurementFragment"
+        android:name="com.jjangdol.biorhythm.ui.measurement.PupilMeasurementFragment"
+        android:label="피로도 측정"
+        tools:layout="@layout/fragment_pupil_measurement">
+        <argument
+            android:name="sessionId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_pupil_to_ppg"
+            app:destination="@id/ppgMeasurementFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <!-- 6. 심박 측정 화면 -->
+    <fragment
+        android:id="@+id/ppgMeasurementFragment"
+        android:name="com.jjangdol.biorhythm.ui.measurement.PPGMeasurementFragment"
+        android:label="심박 측정"
+        tools:layout="@layout/fragment_ppg_measurement">
+        <argument
+            android:name="sessionId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_ppg_to_result"
+            app:destination="@id/resultFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right"
+            app:popUpTo="@id/mainFragment" />
+    </fragment>
+
+    <!-- 7. 결과 화면 -->
     <fragment
         android:id="@+id/resultFragment"
         android:name="com.jjangdol.biorhythm.ui.result.ResultFragment"
-        android:label="결과" />
+        android:label="결과"
+        tools:layout="@layout/fragment_result">
+        <argument
+            android:name="sessionId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+        <!-- 추가된 action: 결과 화면에서 메인으로 돌아가기 -->
+        <action
+            android:id="@+id/action_result_to_main"
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/mainFragment"
+            app:popUpToInclusive="false" />
+        <!-- 다시 측정하기 버튼용 action -->
+        <action
+            android:id="@+id/action_result_to_checklist"
+            app:destination="@id/checklistFragment"
+            app:popUpTo="@id/mainFragment"
+            app:popUpToInclusive="false" />
+        <!-- 기록 보기 버튼용 action -->
+        <action
+            android:id="@+id/action_result_to_history"
+            app:destination="@id/historyFragment" />
+    </fragment>
 
-    <!-- 5. 관리자 화면 -->
+    <!-- 10. 기록 보기 화면 -->
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.jjangdol.biorhythm.ui.history.HistoryFragment"
+        android:label="기록 보기"
+        tools:layout="@layout/fragment_history">
+        <action
+            android:id="@+id/action_history_to_result"
+            app:destination="@id/resultFragment" />
+    </fragment>
+
+    <!-- 8. 관리자 화면 -->
     <fragment
         android:id="@+id/adminFragment"
         android:name="com.jjangdol.biorhythm.ui.admin.AdminFragment"
-        android:label="관리자 모드" />
+        android:label="관리자 모드"
+        tools:layout="@layout/fragment_admin">
+        <action
+            android:id="@+id/action_admin_to_results"
+            app:destination="@id/adminResultsFragment" />
+    </fragment>
 
+    <!-- 9. 관리자 결과 화면 -->
     <fragment
         android:id="@+id/adminResultsFragment"
         android:name="com.jjangdol.biorhythm.ui.admin.AdminResultsFragment"
-        android:label="종합 보기" />
-
+        android:label="종합 보기"
+        tools:layout="@layout/fragment_admin_results" />
 
 </navigation>

@@ -1,29 +1,27 @@
+// ==========================
+// app/build.gradle.kts
+// ==========================
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("kotlin-parcelize")
+    id("kotlin-kapt")                       // Kapt 유지
+    id("dagger.hilt.android.plugin")        // 모듈에서 Hilt 적용
     id("com.google.gms.google-services")
-    id("kotlin-kapt")
-    id("dagger.hilt.android.plugin")
-    id("com.google.devtools.ksp")
-    kotlin("kapt")
+    id("androidx.navigation.safeargs.kotlin")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.jjangdol.biorhythm"
-    compileSdk = 35
-
-    kapt {
-        correctErrorTypes = true
-    }
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.jjangdol.biorhythm"
-        minSdk = 34
-        targetSdk = 35
+        minSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,70 +34,89 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    kotlinOptions { jvmTarget = "17" }
+
     buildFeatures {
         compose = true
         viewBinding = true
         dataBinding = true
     }
 
+    /* Kotlin 2.1.x ↔ Compose Compiler 1.6.14 이상 호환 */
+    composeOptions { kotlinCompilerExtensionVersion = "1.6.14" }
 
+    packagingOptions {
+        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    }
 }
 
 dependencies {
+    /* --- AndroidX Core --- */
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha13")
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    /* --- Lifecycle --- */
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.0")
 
-    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-    implementation("com.google.firebase:firebase-analytics")
+    /* --- Jetpack Compose --- */
+    implementation(platform("androidx.compose:compose-bom:2025.03.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
 
-    // Kotlin & Coroutines
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.21")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    /* --- Navigation --- */
+    val navVersion = "2.7.7"
+    implementation("androidx.navigation:navigation-fragment-ktx:$navVersion")
+    implementation("androidx.navigation:navigation-ui-ktx:$navVersion")
 
-    // AndroidX & Jetpack
-    implementation("androidx.core:core-ktx:1.10.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.1")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.5.3")
-    implementation("androidx.navigation:navigation-ui-ktx:2.5.3")
+    /* --- Firebase --- */
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-database-ktx")
 
-    // Firebase
-    implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
-    implementation("com.google.firebase:firebase-firestore-ktx:24.7.1")
-    implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
-    implementation("com.google.firebase:firebase-database-ktx:20.3.0")
+    /* --- Hilt --- */
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    kapt("com.google.dagger:hilt-compiler:2.56.2")
 
-    // DI (Hilt)
-    implementation("com.google.dagger:hilt-android:2.47")
-    kapt("com.google.dagger:hilt-compiler:2.47")
+    /* --- CameraX --- */
+    val cameraxVersion = "1.4.0-beta01"
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
 
-    // Chart
+    /* --- ML Kit --- */
+    implementation("com.google.mlkit:face-detection:16.1.7")
+
+    /* --- Charts & Utils --- */
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
-    // WorkManager (로컬 알림 예약용)
-    implementation("androidx.work:work-runtime-ktx:2.8.1")
+    /* --- Coroutines --- */
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    /* --- WorkManager --- */
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    /* --- Testing --- */
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2025.03.00"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+kapt { correctErrorTypes = true }
