@@ -19,9 +19,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         _binding = FragmentMainBinding.bind(view)
 
-        // 1) 툴바를 SupportActionBar로 세팅
-        (activity as? AppCompatActivity)?.setSupportActionBar(binding.toolbar)
-
         // 2) childFragmentManager 에서 NavController 가져오기
         val navHost = childFragmentManager
             .findFragmentById(R.id.bottomNavHost) as NavHostFragment

@@ -21,7 +21,34 @@
     <fragment
         android:id="@+id/resultFragment"
         android:name="com.jjangdol.biorhythm.ui.result.ResultFragment"
-        android:label="결과창" />
+        android:label="결과창">
+
+        <!-- 루트 nav_graph와 동일하게 sessionId 정의 -->
+        <argument
+            android:name="sessionId"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+        <!-- 홈으로 돌아가기 버튼용 action (체크리스트로 이동) -->
+        <action
+            android:id="@+id/action_result_to_main"
+            app:destination="@id/checklistFragment"
+            app:popUpTo="@id/checklistFragment"
+            app:popUpToInclusive="false" />
+
+        <!-- 다시 측정하기 버튼용 action -->
+        <action
+            android:id="@+id/action_result_to_checklist"
+            app:destination="@id/checklistFragment"
+            app:popUpTo="@id/checklistFragment"
+            app:popUpToInclusive="false" />
+
+        <!-- 기록보기로 이동하는 action -->
+        <action
+            android:id="@+id/action_result_to_history"
+            app:destination="@id/historyFragment" />
+    </fragment>
 
     <!-- 4) 관리자 모드 -->
     <fragment
@@ -34,5 +61,16 @@
         android:name="com.jjangdol.biorhythm.ui.admin.AdminResultsFragment"
         android:label="종합 보기" />
 
+    <!-- 5) 기록 보기 -->
+    <fragment
+        android:id="@+id/historyFragment"
+        android:name="com.jjangdol.biorhythm.ui.history.HistoryFragment"
+        android:label="기록 보기">
+
+        <!-- 기록에서 결과 상세로 이동 -->
+        <action
+            android:id="@+id/action_history_to_result"
+            app:destination="@id/resultFragment" />
+    </fragment>
 
 </navigation>
