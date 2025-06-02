@@ -7,6 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
     <!-- 기본 색상 -->
     <color name="primary_color">#2196F3</color>
     <color name="primary_dark">#1976D2</color>
@@ -30,4 +31,7 @@
     <color name="divider_color">#E0E0E0</color>
     <color name="error_color">#F44336</color>
     <color name="success_color">#4CAF50</color>
+
+    <!-- 추가 색상 -->
+    <color name="gray">#666666</color>
 </resources>
