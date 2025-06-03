@@ -1,9 +1,9 @@
-// app/src/main/java/com/jjangdol/biorhythm/ui/admin/AdminResultsFragment.kt
 package com.jjangdol.biorhythm.ui.admin
 
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,32 +32,36 @@ class AdminResultsFragment : Fragment(R.layout.fragment_admin_results) {
         super.onViewCreated(view, savedInstanceState)
         _b = FragmentAdminResultsBinding.bind(view)
 
-        // 오늘 날짜 표시
-        b.tvDate.text = LocalDate.now()
-            .format(DateTimeFormatter.ISO_DATE)
+        // 오늘 날짜 출력
+        b.tvDate.text = LocalDate.now().format(DateTimeFormatter.ISO_DATE)
 
-        // 위험군 RecyclerView
+        // RecyclerView 설정
         b.rvRisk.layoutManager = LinearLayoutManager(requireContext())
         b.rvRisk.adapter = riskAdapter
 
-        // 비위험군 RecyclerView
         b.rvSafe.layoutManager = LinearLayoutManager(requireContext())
         b.rvSafe.adapter = safeAdapter
 
-        // 실시간 구독
+        // 데이터 수신 및 분류
         lifecycleScope.launch {
             repo.watchTodayResults().collectLatest { list ->
                 if (list.isEmpty()) {
                     Toast.makeText(requireContext(), "오늘의 결과가 없습니다", Toast.LENGTH_SHORT).show()
                 }
                 val threshold = 50
-                // finalScore 로 분기
-                val riskList = list.filter  { it.finalScore <  threshold }
+                val riskList = list.filter { it.finalScore < threshold }
                 val safeList = list.filter { it.finalScore >= threshold }
 
-                riskAdapter.submitList(riskList)
-                safeAdapter.submitList(safeList)
+                riskAdapter.setData(riskList)
+                safeAdapter.setData(safeList)
             }
+        }
+
+        // 이름 검색 필터
+        b.etSearch.addTextChangedListener {
+            val query = it?.toString() ?: ""
+            riskAdapter.filter(query)
+            safeAdapter.filter(query)
         }
     }
 
