@@ -1,37 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:orientation="vertical">
 
-    <!-- 체크리스트 문항 -->
-    <TextView
-        android:id="@+id/tvQuestion"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="문항 텍스트"
-        android:textSize="16sp" />
 
-    <!-- Yes/No 선택을 위한 RadioGroup -->
-    <RadioGroup
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
 
-        <RadioButton
-            android:id="@+id/btnYes"
-            android:layout_width="wrap_content"
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="예" />
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <RadioButton
-            android:id="@+id/btnNo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="아니요"
-            android:layout_marginStart="16dp" />
-    </RadioGroup>
+            <!-- 문항 텍스트 -->
+            <TextView
+                android:id="@+id/tvQuestion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="문항 텍스트"
+                android:textColor="#000000"
+                android:gravity="center"
+                android:textSize="16sp" />
+
+            <!-- 예/아니요 선택 -->
+            <RadioGroup
+                android:id="@+id/radioGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/btnYes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="예" />
+
+                <RadioButton
+                    android:id="@+id/btnNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:text="아니요" />
+            </RadioGroup>
+
+        </LinearLayout>
+
 </LinearLayout>
