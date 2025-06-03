@@ -1,53 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
 
+    <!-- 문항 텍스트 -->
+    <TextView
+        android:id="@+id/tvQuestion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="문항 텍스트"
+        android:textColor="#212121"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:paddingBottom="12dp"
+        android:layout_gravity="center_horizontal" />
 
+    <!-- 예/아니요 선택 -->
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
 
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <RadioButton
+            android:id="@+id/btnYes"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:text="예"
+            android:textColor="#00796B"
+            android:buttonTint="#00796B"
+            android:textSize="16sp"
+            android:paddingEnd="16dp" />
 
-            <!-- 문항 텍스트 -->
-            <TextView
-                android:id="@+id/tvQuestion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="문항 텍스트"
-                android:textColor="#000000"
-                android:gravity="center"
-                android:textSize="16sp" />
+        <RadioButton
+            android:id="@+id/btnNo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="아니요"
+            android:textColor="#D32F2F"
+            android:buttonTint="#D32F2F"
+            android:textSize="16sp" />
+    </RadioGroup>
 
-            <!-- 예/아니요 선택 -->
-            <RadioGroup
-                android:id="@+id/radioGroup"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <RadioButton
-                    android:id="@+id/btnYes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="예" />
-
-                <RadioButton
-                    android:id="@+id/btnNo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="아니요" />
-            </RadioGroup>
-
-        </LinearLayout>
+    <!-- 구분선 -->
+    <View
+        android:id="@+id/viewDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="#CCCCCC" />
 
 </LinearLayout>
