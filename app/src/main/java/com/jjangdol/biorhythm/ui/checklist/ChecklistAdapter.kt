@@ -1,7 +1,7 @@
-// app/src/main/java/com/jjangdol/biorhythm/ui/checklist/ChecklistAdapter.kt
 package com.jjangdol.biorhythm.ui.checklist
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.jjangdol.biorhythm.databinding.ItemChecklistBinding
@@ -13,7 +13,7 @@ class ChecklistAdapter(
 ) : RecyclerView.Adapter<ChecklistAdapter.VH>() {
 
     inner class VH(private val b: ItemChecklistBinding) : RecyclerView.ViewHolder(b.root) {
-        fun bind(item: ChecklistItem) {
+        fun bind(item: ChecklistItem, isLast: Boolean) {
             b.tvQuestion.text = item.question
             b.btnYes.isChecked = item.answeredYes == true
             b.btnNo.isChecked  = item.answeredYes == false
@@ -26,6 +26,9 @@ class ChecklistAdapter(
                 adapterPosition.takeIf { it != RecyclerView.NO_POSITION }
                     ?.let { onAnswerChanged(it, false) }
             }
+
+            // 마지막 항목이면 구분선 숨기기
+            b.viewDivider.visibility = if (isLast) View.GONE else View.VISIBLE
         }
     }
 
@@ -37,7 +40,8 @@ class ChecklistAdapter(
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        holder.bind(items[position])
+        val isLast = position == items.lastIndex
+        holder.bind(items[position], isLast)
     }
 
     override fun getItemCount() = items.size
