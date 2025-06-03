@@ -55,6 +55,23 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
         loadUserData()
         setupSubmitButton()
         observeViewModel()
+
+        // 3) 이미지 애니메이션
+        binding.ivChecklist.apply {
+            alpha = 0f
+            scaleX = 0.6f
+            scaleY = 0.6f
+            rotation = -90f
+
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .rotation(0f)
+                .setDuration(1000L)
+                .start()
+        }
+
     }
 
     private fun initializeSafetyCheckSession() {
