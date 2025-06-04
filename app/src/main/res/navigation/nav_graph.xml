@@ -21,6 +21,12 @@
             app:destination="@id/mainFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
+        <!-- 로그인에서 관리자로 직접 이동하는 액션 추가 -->
+        <action
+            android:id="@+id/action_login_to_admin"
+            app:destination="@id/newAdminFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <!-- 2. 메인 화면 -->
@@ -36,11 +42,9 @@
             android:id="@+id/action_main_to_result"
             app:destination="@id/resultFragment" />
         <action
-            android:id="@+id/action_main_to_admin"
-            app:destination="@id/adminFragment" />
-        <action
             android:id="@+id/action_main_to_history"
             app:destination="@id/historyFragment" />
+        <!-- 기존 관리자 액션 제거됨 -->
     </fragment>
 
     <!-- 3. 체크리스트 화면 -->
@@ -124,25 +128,22 @@
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
-        <!-- 추가된 action: 결과 화면에서 메인으로 돌아가기 -->
         <action
             android:id="@+id/action_result_to_main"
             app:destination="@id/mainFragment"
             app:popUpTo="@id/mainFragment"
             app:popUpToInclusive="false" />
-        <!-- 다시 측정하기 버튼용 action -->
         <action
             android:id="@+id/action_result_to_checklist"
             app:destination="@id/checklistFragment"
             app:popUpTo="@id/mainFragment"
             app:popUpToInclusive="false" />
-        <!-- 기록 보기 버튼용 action -->
         <action
             android:id="@+id/action_result_to_history"
             app:destination="@id/historyFragment" />
     </fragment>
 
-    <!-- 10. 기록 보기 화면 -->
+    <!-- 8. 기록 보기 화면 -->
     <fragment
         android:id="@+id/historyFragment"
         android:name="com.jjangdol.biorhythm.ui.history.HistoryFragment"
@@ -153,22 +154,29 @@
             app:destination="@id/resultFragment" />
     </fragment>
 
-    <!-- 8. 관리자 화면 -->
+    <!-- 9. 새로운 관리자 화면 -->
     <fragment
-        android:id="@+id/adminFragment"
-        android:name="com.jjangdol.biorhythm.ui.admin.AdminFragment"
+        android:id="@+id/newAdminFragment"
+        android:name="com.jjangdol.biorhythm.ui.admin.NewAdminFragment"
         android:label="관리자 모드"
-        tools:layout="@layout/fragment_admin">
+        tools:layout="@layout/fragment_new_admin">
+        <!-- 로그아웃하여 로그인으로 돌아가는 액션 -->
         <action
-            android:id="@+id/action_admin_to_results"
-            app:destination="@id/adminResultsFragment" />
+            android:id="@+id/action_admin_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+        <!-- 알림 관리 화면으로 이동하는 액션 -->
+        <action
+            android:id="@+id/action_admin_to_notification_management"
+            app:destination="@id/notificationManagementFragment" />
     </fragment>
 
-    <!-- 9. 관리자 결과 화면 -->
+    <!-- 10. 알림 관리 화면 -->
     <fragment
-        android:id="@+id/adminResultsFragment"
-        android:name="com.jjangdol.biorhythm.ui.admin.AdminResultsFragment"
-        android:label="종합 보기"
-        tools:layout="@layout/fragment_admin_results" />
+        android:id="@+id/notificationManagementFragment"
+        android:name="com.jjangdol.biorhythm.ui.admin.NotificationManagementFragment"
+        android:label="알림 관리"
+        tools:layout="@layout/fragment_notification_management" />
 
 </navigation>

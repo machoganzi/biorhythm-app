@@ -50,17 +50,6 @@
             app:destination="@id/historyFragment" />
     </fragment>
 
-    <!-- 4) 관리자 모드 -->
-    <fragment
-        android:id="@+id/adminFragment"
-        android:name="com.jjangdol.biorhythm.ui.admin.AdminFragment"
-        android:label="관리자" />
-
-    <fragment
-        android:id="@+id/adminResultsFragment"
-        android:name="com.jjangdol.biorhythm.ui.admin.AdminResultsFragment"
-        android:label="종합 보기" />
-
     <!-- 5) 기록 보기 -->
     <fragment
         android:id="@+id/historyFragment"
