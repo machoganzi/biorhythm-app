@@ -179,4 +179,14 @@
         android:label="알림 관리"
         tools:layout="@layout/fragment_notification_management" />
 
+    <fragment
+        android:id="@+id/adminChecklistManagementFragment"
+        android:name="com.jjangdol.biorhythm.ui.admin.AdminChecklistManagementFragment"
+        android:label="체크리스트 문항 관리"
+        tools:layout="@layout/fragment_admin_checklist_management" />
+
+    <action
+        android:id="@+id/action_admin_to_checklist_management"
+        app:destination="@id/adminChecklistManagementFragment" />
+
 </navigation>

@@ -119,6 +119,20 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
         binding.btnChangePassword.setOnClickListener {
             showChangePasswordDialog()
         }
+        
+
+        // 체크리스트 문항 관리 버튼
+        binding.btnManageChecklist.setOnClickListener {
+            try {
+                findNavController().navigate(R.id.action_admin_to_checklist_management)
+            } catch (e: Exception) {
+                // Fragment를 직접 교체하는 방법
+                parentFragmentManager.beginTransaction()
+                    .replace(android.R.id.content, AdminChecklistManagementFragment())
+                    .addToBackStack(null)
+                    .commit()
+            }
+        }
     }
 
     // 실제 데이터 관찰
@@ -316,6 +330,8 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
             }
         }
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

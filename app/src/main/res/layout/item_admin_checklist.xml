@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 상단 영역: 번호, 문항 내용, 수정/삭제 버튼 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- 문항 번호 -->
+            <TextView
+                android:id="@+id/tvQuestionNumber"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/circle_background_primary"
+                android:gravity="center"
+                android:text="1"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="12dp" />
+
+            <!-- 문항 내용 (수정 가능) -->
+            <EditText
+                android:id="@+id/etQuestion"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:text="문항 내용"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:enabled="false"
+                android:inputType="textMultiLine"
+                android:maxLines="3"
+                android:padding="8dp" />
+
+            <!-- 수정 버튼 -->
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_edit"
+                android:tint="@color/primary_color"
+                android:padding="8dp"
+                android:layout_marginEnd="4dp" />
+
+            <!-- 삭제 버튼 -->
+            <ImageButton
+                android:id="@+id/btnDelete"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_delete"
+                android:tint="@color/error_color"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+        <!-- 가중치 조정 영역 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="가중치:"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/sbWeight"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/tvWeightValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="50"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_color"
+                android:layout_marginStart="8dp"
+                android:minWidth="30dp"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+        <!-- 수정 완료/취소 버튼 (수정 모드에서만 표시) -->
+        <LinearLayout
+            android:id="@+id/editButtonsLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancel"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="취소"
+                android:textSize="14sp"
+                app:cornerRadius="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveEdit"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="저장"
+                android:textSize="14sp"
+                app:backgroundTint="@color/success_color"
+                app:cornerRadius="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
