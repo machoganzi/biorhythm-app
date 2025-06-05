@@ -375,31 +375,55 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- 관리 기능 버튼들 -->
+            <!-- 관리 기능 버튼들 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnManageNotifications"
-                    android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="알림 관리"
-                    android:textSize="16sp"
-                    app:backgroundTint="@color/primary_color"
-                    app:cornerRadius="12dp"
-                    app:icon="@drawable/ic_notification"
-                    app:iconGravity="textStart"
-                    app:iconSize="20dp" />
+                <!-- 첫 번째 줄 버튼들 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnManageNotifications"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="알림 관리"
+                        android:textSize="16sp"
+                        app:backgroundTint="@color/primary_color"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_notification"
+                        app:iconGravity="textStart"
+                        app:iconSize="20dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnManageChecklist"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="문항 관리"
+                        android:textSize="16sp"
+                        app:backgroundTint="@color/primary_color"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_checklist"
+                        app:iconGravity="textStart"
+                        app:iconSize="20dp" />
+
+                </LinearLayout>
+
+                <!-- 두 번째 줄 버튼 -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnChangePassword"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
                     android:text="비밀번호 변경"
                     android:textSize="16sp"
                     app:backgroundTint="@color/text_secondary"

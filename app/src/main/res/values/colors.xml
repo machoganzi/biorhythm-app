@@ -34,4 +34,5 @@
 
     <!-- 추가 색상 -->
     <color name="gray">#666666</color>
+    <color name="item_background">#F5F5F5</color>
 </resources>

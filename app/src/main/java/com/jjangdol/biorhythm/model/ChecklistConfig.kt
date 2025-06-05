@@ -7,6 +7,6 @@ package com.jjangdol.biorhythm.model
 data class ChecklistConfig(
     val id: String = "",       // Firestore 문서 ID
     val question: String = "", // 문항 텍스트
-    val weight: Int = 10       // 기본 가중치
+    val weight: Int = 10,       // 기본 가중치
+    val order: Int = 0
 )
- 
