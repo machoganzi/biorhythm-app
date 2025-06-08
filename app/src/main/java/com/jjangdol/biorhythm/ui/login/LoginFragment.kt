@@ -1,9 +1,11 @@
 package com.jjangdol.biorhythm.ui.login
 
 import android.app.DatePickerDialog
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -12,16 +14,16 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jjangdol.biorhythm.R
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.databinding.FragmentLoginBinding
 import com.jjangdol.biorhythm.vm.LoginState
 import com.jjangdol.biorhythm.vm.LoginViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import android.content.Context
-import android.widget.EditText
-import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginFragment : Fragment(R.layout.fragment_login) {
@@ -30,6 +32,9 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
     private val dateFormatter = DateTimeFormatter.ISO_DATE
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     // Firebase Firestore 인스턴스
     private val firestore = FirebaseFirestore.getInstance()
@@ -84,15 +89,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             val name = binding.etName.text.toString()
             val dob = binding.tvDob.text.toString()
 
-            vm.login(dept, name, dob)
-
-            // SharedPreferences 저장
-            val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString("dob", dob)
-                .putString("user_name", name)
-                .putString("user_dept", dept)
-                .apply()
+            performLogin(dept, name, dob)
         }
 
         // 상태 관찰
@@ -113,6 +110,49 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                     }
                     else -> Unit
                 }
+            }
+        }
+    }
+
+    private fun performLogin(dept: String, name: String, dob: String) {
+        // 입력 유효성 검사
+        if (dept == "--부서 선택--" || dept.isEmpty()) {
+            Toast.makeText(requireContext(), "부서를 선택해주세요", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (name.trim().isEmpty()) {
+            Toast.makeText(requireContext(), "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (dob.isEmpty() || dob == "생년월일을 선택하세요") {
+            Toast.makeText(requireContext(), "생년월일을 선택해주세요", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // 로딩 상태 설정
+                binding.btnLogin.isEnabled = false
+                binding.btnLogin.text = "로그인 중…"
+
+                // 1) UserRepository를 통해 사용자 프로필 저장/업데이트
+                userRepository.signInAndSaveProfile(dept, name, dob)
+
+                // 2) SharedPreferences에도 저장 (앱 내에서 빠른 접근용)
+                val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("dob", dob)
+                    .putString("user_name", name)
+                    .putString("user_dept", dept)
+                    .apply()
+
+                // 3) LoginViewModel을 통한 로그인 처리
+                vm.login(dept, name, dob)
+
+            } catch (e: Exception) {
+                binding.btnLogin.isEnabled = true
+                binding.btnLogin.text = getString(R.string.login)
+                Toast.makeText(requireContext(), "로그인 실패: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

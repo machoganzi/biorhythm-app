@@ -1,5 +1,6 @@
 package com.jjangdol.biorhythm.ui.result
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -9,11 +10,11 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.jjangdol.biorhythm.R
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.databinding.FragmentResultBinding
 import com.jjangdol.biorhythm.model.SafetyLevel
 import com.jjangdol.biorhythm.util.ScoreCalculator
 import com.jjangdol.biorhythm.vm.SafetyCheckViewModel
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.github.mikephil.charting.components.XAxis
@@ -22,6 +23,7 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ResultFragment : Fragment(R.layout.fragment_result) {
@@ -32,7 +34,9 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     private val args: ResultFragmentArgs by navArgs()
     private val safetyCheckViewModel: SafetyCheckViewModel by activityViewModels()
 
-    private val auth = Firebase.auth
+    @Inject
+    lateinit var userRepository: UserRepository
+
     private val db = Firebase.firestore
     private val dateFormatter = DateTimeFormatter.ISO_DATE
 
@@ -51,6 +55,19 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
         }
 
         setupButtons()
+    }
+
+    private fun getUserId(): String? {
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
     }
 
     private fun loadSessionResults() {
@@ -78,11 +95,16 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
         }
 
         // 최신 결과 로드
-        val uid = auth.currentUser?.uid ?: return
+        val userId = getUserId()
+        if (userId == null) {
+            Toast.makeText(requireContext(), "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val today = LocalDate.now().format(dateFormatter)
 
         db.collection("results")
-            .document(uid)
+            .document(userId)
             .collection("daily")
             .document(today)
             .get()
@@ -97,16 +119,16 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     }
 
     private fun loadTodayResults() {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            Toast.makeText(requireContext(), "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
+        val userId = getUserId()
+        if (userId == null) {
+            Toast.makeText(requireContext(), "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
             return
         }
 
         val today = LocalDate.now().format(dateFormatter)
 
         db.collection("results")
-            .document(uid)
+            .document(userId)
             .collection("daily")
             .document(today)
             .get()

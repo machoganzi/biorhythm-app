@@ -35,17 +35,11 @@ class NotificationFragment : Fragment(R.layout.fragment_notification) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentNotificationBinding.bind(view)
 
-        setupUI()
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
     }
 
-    private fun setupUI() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
-    }
 
     private fun setupRecyclerView() {
         notificationAdapter = UserNotificationAdapter(
@@ -58,6 +52,8 @@ class NotificationFragment : Fragment(R.layout.fragment_notification) {
             },
             onMarkReadClick = { notification ->
                 viewModel.markAsRead(notification.id)
+                // 즉시 어댑터 갱신
+                notificationAdapter.notifyDataSetChanged()
             },
             onShareClick = { notification ->
                 shareNotification(notification)
@@ -129,7 +125,11 @@ class NotificationFragment : Fragment(R.layout.fragment_notification) {
             }
         }
 
+        // 🔥 읽음 상태 변경 관찰 추가 - 이게 핵심!
         viewLifecycleOwner.lifecycleScope.launch {
+            // UserNotificationRepository의 readNotificationIds Flow 관찰
+            // (실제로는 UserNotificationViewModel을 통해 접근해야 함)
+            // 임시로 UI 상태 변경을 통해 갱신
             viewModel.uiState.collectLatest { state ->
                 when (state) {
                     is UserNotificationViewModel.UiState.Loading -> {
@@ -139,6 +139,8 @@ class NotificationFragment : Fragment(R.layout.fragment_notification) {
                         binding.progressBar.visibility = View.GONE
                         if (state.message.isNotEmpty()) {
                             Toast.makeText(requireContext(), state.message, Toast.LENGTH_SHORT).show()
+                            // 🔥 성공 메시지가 있을 때 어댑터 갱신
+                            notificationAdapter.notifyDataSetChanged()
                         }
                     }
                     is UserNotificationViewModel.UiState.Error -> {

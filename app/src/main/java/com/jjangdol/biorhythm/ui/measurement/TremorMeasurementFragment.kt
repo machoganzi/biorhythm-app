@@ -1,6 +1,7 @@
 package com.jjangdol.biorhythm.ui.measurement
 
 import android.Manifest
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -14,6 +15,8 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.navArgs
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import com.jjangdol.biorhythm.R
 import com.jjangdol.biorhythm.databinding.FragmentTremorMeasurementBinding
 import com.jjangdol.biorhythm.model.MeasurementResult
@@ -24,6 +27,34 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
+import org.jtransforms.fft.DoubleFFT_1D
+
+// 떨림 임계값 데이터 클래스
+data class TremorThresholds(
+    val normalAvgTremor: Float,
+    val normalMaxTremor: Float,
+    val normalStdDev: Float
+)
+
+// 연령대 구분 enum
+enum class AgeGroup {
+    YOUNG_ADULT,    // 20-39
+    MIDDLE_AGED,    // 40-59
+    ELDERLY         // 60+
+}
+
+// 사용자 프로필
+data class UserProfile(
+    val age: Int?,
+    val workType: String?
+) {
+    val ageGroup: AgeGroup
+        get() = when (age) {
+            in 20..39 -> AgeGroup.YOUNG_ADULT
+            in 40..59 -> AgeGroup.MIDDLE_AGED
+            else -> AgeGroup.ELDERLY
+        }
+}
 
 @AndroidEntryPoint
 class TremorMeasurementFragment : BaseMeasurementFragment(),
@@ -49,8 +80,12 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
 
     // 측정 설정
     private val CALIBRATION_TIME = 3000L // 3초 캘리브레이션
-    private val MEASUREMENT_TIME = 10000L // 10초 측정
+    private val MEASUREMENT_TIME = 15000L // 15초 측정 (더 안정적인 분석을 위해 증가)
     private val SAMPLE_RATE = 50 // Hz
+    private val MIN_MEASUREMENT_TIME = 10000L // 최소 측정 시간
+
+    // 사용자 프로필 추가
+    private var userProfile: UserProfile? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -66,8 +101,33 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
 
         sessionId = arguments?.getString("sessionId") ?: ""
 
+        // 사용자 프로필 초기화
+        initializeUserProfile()
+
         setupSensor()
         setupUI()
+    }
+
+    private fun initializeUserProfile() {
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val name = prefs.getString("user_name", null)
+        val dept = prefs.getString("user_dept", null)
+        val dob = prefs.getString("dob", null)
+
+        if (name != null && dept != null && dob != null) {
+            val age = calculateAgeFromDob(dob)
+            userProfile = UserProfile(age = age, workType = dept)
+        }
+    }
+
+    private fun calculateAgeFromDob(dobString: String): Int {
+        return try {
+            val dob = LocalDate.parse(dobString, DateTimeFormatter.ISO_DATE)
+            val today = LocalDate.now()
+            today.year - dob.year - if (today.dayOfYear < dob.dayOfYear) 1 else 0
+        } catch (e: Exception) {
+            30 // 기본값
+        }
     }
 
     private fun setupSensor() {
@@ -174,7 +234,8 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // 필요시 정확도 변경 처리
+        // 센서 정확도 로깅
+        Log.d("TremorSensor", "Accuracy changed: $accuracy")
     }
 
     private fun calculateBaseline() {
@@ -193,7 +254,13 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         val baseline = baselineAcceleration ?: return
 
         if (accelerationData.isEmpty()) {
-            onMeasurementComplete(0f, "No data")
+            updateState(MeasurementState.Error("측정 데이터가 없습니다"))
+            return
+        }
+
+        // 측정 품질 검증
+        if (!validateMeasurementQuality(accelerationData)) {
+            updateState(MeasurementState.Error("측정 품질이 불충분합니다. 다시 시도해주세요."))
             return
         }
 
@@ -208,22 +275,23 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         // 통계 계산
         val avgTremor = tremorMagnitudes.average()
         val maxTremor = tremorMagnitudes.maxOrNull() ?: 0f
-        val stdDeviation = calculateStandardDeviation(tremorMagnitudes)
+        val normalizedStdDev = calculateNormalizedStdDev(tremorMagnitudes, baseline)
 
-        // 주파수 분석 (간단한 버전 - 실제로는 FFT 사용)
-        val peakFrequency = estimatePeakFrequency(accelerationData)
+        // 주파수 분석 FFT 사용
+        val peakFrequency = estimateFrequencyWithFFT(accelerationData, SAMPLE_RATE)
 
-        // 점수 계산 (0-100)
-        val score = calculateTremorScore(avgTremor, maxTremor, stdDeviation, peakFrequency)
+        // 적응형 점수 계산 (0-100)
+        val score = calculateAdaptiveTremorScore(avgTremor, maxTremor, normalizedStdDev, peakFrequency)
 
         // 결과 JSON
         val rawData = """
             {
                 "avgTremor": $avgTremor,
                 "maxTremor": $maxTremor,
-                "stdDeviation": $stdDeviation,
+                "normalizedStdDev": $normalizedStdDev,
                 "peakFrequency": $peakFrequency,
-                "sampleCount": ${accelerationData.size}
+                "sampleCount": ${accelerationData.size},
+                "measurementDuration": ${MEASUREMENT_TIME / 1000}
             }
         """.trimIndent()
 
@@ -236,6 +304,137 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         binding.btnNext.setOnClickListener {
             onMeasurementComplete(score, rawData)
         }
+    }
+
+    private fun validateMeasurementQuality(data: List<Triple<Float, Float, Float>>): Boolean {
+        // 최소 측정 시간 확인
+        val expectedMinSamples = (MIN_MEASUREMENT_TIME / 1000) * SAMPLE_RATE
+        if (data.size < expectedMinSamples) {
+            Log.w("TremorValidation", "Insufficient data: ${data.size} < $expectedMinSamples")
+            return false
+        }
+
+        // 센서 오류나 극단적 움직임 감지
+        val magnitudes = data.map { (x, y, z) -> sqrt(x.pow(2) + y.pow(2) + z.pow(2)) }
+        val mean = magnitudes.average()
+        val stdDev = calculateStandardDeviation(magnitudes)
+
+        // 이상치 비율 확인 (3 시그마 규칙)
+        val outliers = magnitudes.count { abs(it - mean) > 3 * stdDev }
+        val outlierRatio = outliers.toDouble() / data.size
+
+        if (outlierRatio > 0.15) { // 15% 이상의 이상치는 부적절
+            Log.w("TremorValidation", "Too many outliers: ${outlierRatio * 100}%")
+            return false
+        }
+
+        // 센서 포화 상태 확인 (극단적 값)
+        val maxMagnitude = magnitudes.maxOrNull() ?: 0f
+        if (maxMagnitude > 50f) { // 중력가속도 대비 극단적으로 큰 값
+            Log.w("TremorValidation", "Sensor saturation detected: $maxMagnitude")
+            return false
+        }
+
+        return true
+    }
+
+    private fun calculateNormalizedStdDev(values: List<Float>, baseline: Triple<Float, Float, Float>): Float {
+        val baselineMagnitude = sqrt(baseline.first.pow(2) + baseline.second.pow(2) + baseline.third.pow(2))
+        val stdDev = calculateStandardDeviation(values)
+
+        // 베이스라인 대비 상대적 변동성 계산 (0으로 나누기 방지)
+        return if (baselineMagnitude > 0.1f) {
+            stdDev / baselineMagnitude
+        } else {
+            stdDev
+        }
+    }
+
+    private fun getAdaptiveThresholds(userProfile: UserProfile?): TremorThresholds {
+        return when (userProfile?.ageGroup) {
+            AgeGroup.YOUNG_ADULT -> TremorThresholds(0.3f, 1.5f, 0.15f)
+            AgeGroup.MIDDLE_AGED -> TremorThresholds(0.5f, 2.0f, 0.25f)
+            AgeGroup.ELDERLY -> TremorThresholds(0.7f, 2.5f, 0.35f)
+            else -> TremorThresholds(0.5f, 2.0f, 0.25f) // 기본값
+        }
+    }
+
+
+
+    private fun calculateAdaptiveTremorScore(
+        avgTremor: Double,
+        maxTremor: Float,
+        normalizedStdDev: Float,
+        frequency: Float
+    ): Float {
+        val thresholds = getAdaptiveThresholds(userProfile)
+
+        // 평균 떨림 점수 (개선된 곡선)
+        val avgScore = when {
+            avgTremor <= thresholds.normalAvgTremor -> 100.0
+            avgTremor <= thresholds.normalAvgTremor * 1.5 -> {
+                100 - ((avgTremor - thresholds.normalAvgTremor) / thresholds.normalAvgTremor * 30)
+            }
+            avgTremor <= thresholds.normalAvgTremor * 3 -> {
+                70 - ((avgTremor - thresholds.normalAvgTremor * 1.5) / (thresholds.normalAvgTremor * 1.5) * 40)
+            }
+            else -> {
+                30 - ((avgTremor - thresholds.normalAvgTremor * 3) / (thresholds.normalAvgTremor * 2) * 20)
+                    .coerceIn(0.0, 30.0)
+            }
+        }.coerceIn(0.0, 100.0)
+
+        // 최대 떨림 점수 (작업 안전성을 위해 더 엄격하게)
+        val maxScore = when {
+            maxTremor <= thresholds.normalMaxTremor -> 100f
+            maxTremor <= thresholds.normalMaxTremor * 1.5f -> {
+                100 - ((maxTremor - thresholds.normalMaxTremor) / thresholds.normalMaxTremor * 40)
+            }
+            maxTremor <= thresholds.normalMaxTremor * 3f -> {
+                60 - ((maxTremor - thresholds.normalMaxTremor * 1.5f) / (thresholds.normalMaxTremor * 1.5f) * 40)
+            }
+            else -> {
+                20 - ((maxTremor - thresholds.normalMaxTremor * 3f) / (thresholds.normalMaxTremor * 2f) * 15)
+                    .coerceIn(0f, 20f)
+            }
+        }.coerceIn(0f, 100f)
+
+        // 정규화된 표준편차 점수
+        val stdScore = when {
+            normalizedStdDev <= thresholds.normalStdDev -> 100f
+            normalizedStdDev <= thresholds.normalStdDev * 2 -> {
+                100 - ((normalizedStdDev - thresholds.normalStdDev) / thresholds.normalStdDev * 50)
+            }
+            else -> {
+                50 - ((normalizedStdDev - thresholds.normalStdDev * 2) / thresholds.normalStdDev * 35)
+                    .coerceIn(0f, 50f)
+            }
+        }.coerceIn(0f, 100f)
+
+        // 세분화된 주파수 점수 (임상 기준 강화)
+        val freqScore = when {
+            frequency == 0f -> 95f                    // 떨림 없음 (매우 좋음)
+            frequency in 4f..6f -> 100f               // 생리적 떨림 (정상)
+            frequency in 3f..4f || frequency in 6f..8f -> 90f  // 경계 정상
+            frequency in 8f..12f -> 80f               // 본태성 떨림 (경미한 우려)
+            frequency in 2f..3f || frequency in 12f..15f -> 70f // 주의 필요
+            frequency in 1f..2f || frequency in 15f..20f -> 50f // 상당한 우려
+            frequency > 20f -> 30f                    // 심각한 떨림
+            else -> 40f                               // 기타 비정상
+        }
+
+        // 작업 안전성을 위한 가중치 (보수적 접근)
+        // 최대 떨림과 평균 떨림에 더 큰 비중을 둠
+        val safetyWeight = if (maxTremor > thresholds.normalMaxTremor * 2) 0.1f else 0f
+
+        val finalScore = (
+                avgScore * 0.35 +
+                        maxScore * 0.35 +
+                        stdScore * 0.15 +
+                        freqScore * 0.15
+                ).toFloat() - safetyWeight * 100f
+
+        return finalScore.coerceIn(0f, 100f)
     }
 
     private fun showResults(score: Float) {
@@ -251,11 +450,11 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         // 결과 카드 표시
         binding.resultCard.visibility = View.VISIBLE
 
-        // 결과 아이콘 설정
+        // 결과 아이콘 설정 (더 엄격한 기준)
         binding.ivResultIcon.setImageResource(
             when {
-                score >= 80 -> R.drawable.ic_check_circle
-                score >= 60 -> R.drawable.ic_warning
+                score >= 85 -> R.drawable.ic_check_circle
+                score >= 70 -> R.drawable.ic_warning
                 else -> R.drawable.ic_error
             }
         )
@@ -263,19 +462,20 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         // 결과 아이콘 색상 설정
         binding.ivResultIcon.setColorFilter(
             ContextCompat.getColor(requireContext(), when {
-                score >= 80 -> R.color.safety_safe
-                score >= 60 -> R.color.safety_caution
+                score >= 85 -> R.color.safety_safe
+                score >= 70 -> R.color.safety_caution
                 else -> R.color.safety_danger
             })
         )
 
         // 결과 텍스트 설정
         binding.tvResult.text = "손떨림 점수: ${score.toInt()}점"
+
         binding.tvResultDetail.text = when {
-            score >= 80 -> "매우 안정적입니다"
-            score >= 60 -> "약간의 떨림이 감지됩니다"
-            score >= 40 -> "주의가 필요한 수준입니다"
-            else -> "휴식이 필요합니다"
+            score >= 85 -> "작업에 적합한 안정적인 상태입니다"
+            score >= 70 -> "주의하여 작업하시기 바랍니다"
+            score >= 50 -> "작업 전 충분한 휴식이 필요합니다"
+            else -> "작업을 중단하고 휴식을 취하세요"
         }
 
         // 버튼 그룹 변경
@@ -284,78 +484,53 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
     }
 
     private fun calculateStandardDeviation(values: List<Float>): Float {
+        if (values.isEmpty()) return 0f
         val mean = values.average()
         val variance = values.map { (it - mean).pow(2) }.average()
         return sqrt(variance).toFloat()
     }
 
-    private fun estimatePeakFrequency(data: List<Triple<Float, Float, Float>>): Float {
-        // 간단한 zero-crossing 방법으로 주파수 추정
-        // 실제로는 FFT를 사용하는 것이 더 정확함
-        if (data.size < 2) return 0f
+    private fun estimateFrequencyWithFFT(data: List<Triple<Float, Float, Float>>, sampleRate: Int = 50): Float {
+        if (data.size < 64) return 0f // FFT를 위한 최소 샘플 수
 
+        // 진폭 배열 생성 (XYZ 벡터 크기)
         val magnitudes = data.map { (x, y, z) ->
-            val baseline = baselineAcceleration ?: Triple(0f, 0f, 0f)
-            val dx = x - baseline.first
-            val dy = y - baseline.second
-            val dz = z - baseline.third
-            sqrt(dx.pow(2) + dy.pow(2) + dz.pow(2))
+            sqrt(x * x + y * y + z * z).toDouble()
+        }.toDoubleArray()
+
+        // FFT 입력 크기를 2의 거듭제곱으로 조정
+        val n = Integer.highestOneBit(magnitudes.size)
+        val fftInput = magnitudes.copyOf(n)
+
+        val fft = DoubleFFT_1D(n.toLong())
+        val fftData = DoubleArray(n * 2)
+
+        // 실수 데이터를 복소수 배열로 복사
+        for (i in 0 until n) {
+            fftData[2 * i] = fftInput[i]
+            fftData[2 * i + 1] = 0.0
         }
 
-        var zeroCrossings = 0
-        for (i in 1 until magnitudes.size) {
-            if ((magnitudes[i-1] > 0 && magnitudes[i] <= 0) ||
-                (magnitudes[i-1] < 0 && magnitudes[i] >= 0)) {
-                zeroCrossings++
-            }
+        fft.complexForward(fftData)
+
+        // 진폭 스펙트럼 계산
+        val amplitudes = DoubleArray(n / 2)
+        for (i in 0 until n / 2) {
+            val real = fftData[2 * i]
+            val imag = fftData[2 * i + 1]
+            amplitudes[i] = sqrt(real * real + imag * imag)
         }
 
-        val duration = MEASUREMENT_TIME / 1000f // 초 단위
-        return (zeroCrossings / 2f) / duration // Hz
-    }
+        // DC 성분 제거 및 최대 진폭 주파수 찾기
+        amplitudes[0] = 0.0 // DC 성분 제거
 
-    private fun calculateTremorScore(
-        avgTremor: Double,
-        maxTremor: Float,
-        stdDev: Float,
-        frequency: Float
-    ): Float {
-        // 정상 범위 기준값
-        val normalAvgTremor = 0.5f
-        val normalMaxTremor = 2.0f
-        val normalStdDev = 0.3f
-        val normalFrequency = 8f // 생리적 떨림은 보통 8-12Hz
+        val maxIndex = amplitudes.withIndex()
+            .drop(1) // DC 제거
+            .filter { it.index < amplitudes.size / 4 } // 너무 높은 주파수 제외 (25Hz 이하)
+            .maxByOrNull { it.value }?.index ?: return 0f
 
-        // 각 지표별 점수 계산 (떨림이 적을수록 높은 점수)
-        val avgScore = when {
-            avgTremor <= normalAvgTremor -> 100.0  // 정상 이하면 만점
-            avgTremor <= normalAvgTremor * 2 -> 100 - ((avgTremor - normalAvgTremor) / normalAvgTremor * 50)  // 정상의 2배까지는 50점까지 감점
-            else -> 50 - ((avgTremor - normalAvgTremor * 2) / normalAvgTremor * 25).coerceIn(0.0, 50.0)  // 그 이상은 추가 감점
-        }
-
-        val maxScore = when {
-            maxTremor <= normalMaxTremor -> 100f
-            maxTremor <= normalMaxTremor * 2 -> 100 - ((maxTremor - normalMaxTremor) / normalMaxTremor * 50)
-            else -> 50 - ((maxTremor - normalMaxTremor * 2) / normalMaxTremor * 25).coerceIn(0f, 50f)
-        }
-
-        val stdScore = when {
-            stdDev <= normalStdDev -> 100f
-            stdDev <= normalStdDev * 2 -> 100 - ((stdDev - normalStdDev) / normalStdDev * 50)
-            else -> 50 - ((stdDev - normalStdDev * 2) / normalStdDev * 25).coerceIn(0f, 50f)
-        }
-
-        // 주파수는 정상 범위(6-14Hz) 내에 있으면 만점
-        val freqScore = when {
-            frequency in 6f..14f -> 100f
-            frequency in 4f..16f -> 80f
-            frequency in 2f..18f -> 60f
-            frequency == 0f -> 100f  // 떨림이 없으면 만점
-            else -> 40f
-        }
-
-        // 가중 평균
-        return (avgScore * 0.3 + maxScore * 0.3 + stdScore * 0.2 + freqScore * 0.2).toFloat()
+        val frequencyResolution = sampleRate.toDouble() / n
+        return (maxIndex * frequencyResolution).toFloat()
     }
 
     private fun updateRealtimeVisual(x: Float, y: Float, z: Float) {
@@ -381,6 +556,7 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
                 binding.resultButtons.visibility = View.GONE
                 binding.progressBar.visibility = View.GONE
                 binding.measurementGuide.visibility = View.GONE
+                binding.resultCard.visibility = View.GONE
             }
             else -> {}
         }
@@ -402,6 +578,8 @@ class TremorMeasurementFragment : BaseMeasurementFragment(),
         binding.measurementGuide.visibility = View.GONE
         binding.tvTimer.visibility = View.GONE
         binding.tvStatus.text = "측정 준비"
+
+        updateState(MeasurementState.Idle)
     }
 
     override fun onDestroyView() {

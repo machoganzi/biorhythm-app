@@ -8,16 +8,6 @@
     android:background="@color/background_color"
     tools:context=".ui.main.NotificationFragment">
 
-    <!-- 툴바 -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary_color"
-        app:title="알림"
-        app:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@android:color/white" />
 
     <!-- 알림 상태 헤더 -->
     <com.google.android.material.card.MaterialCardView

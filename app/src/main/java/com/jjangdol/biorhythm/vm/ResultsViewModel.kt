@@ -1,11 +1,13 @@
 // app/src/main/java/com/jjangdol/biorhythm/vm/ResultsViewModel.kt
 package com.jjangdol.biorhythm.vm
 
+import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.model.ChecklistResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +18,9 @@ import javax.inject.Inject
 @HiltViewModel
 class ResultsViewModel @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
-) : ViewModel() {
+    private val userRepository: UserRepository,
+    private val application: Application
+) : AndroidViewModel(application) {
 
     // UI에서 관찰할 dailyResults Flow
     private val _dailyResults = MutableStateFlow<List<ChecklistResult>>(emptyList())
@@ -27,16 +30,29 @@ class ResultsViewModel @Inject constructor(
         fetchDailyResults()
     }
 
-    /** Firestore 에서 “results/{uid}/daily” 문서들을 실시간으로 가져와서 _dailyResults 에 업데이트 */
+    private fun getUserId(): String? {
+        val prefs = application.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
+    }
+
+    /** Firestore 에서 "results/{userId}/daily" 문서들을 실시간으로 가져와서 _dailyResults 에 업데이트 */
     fun fetchDailyResults() {
-        val uid = auth.currentUser?.uid
-        if (uid.isNullOrEmpty()) {
-            Log.w(TAG, "fetchDailyResults: not logged in")
+        val userId = getUserId()
+        if (userId.isNullOrEmpty()) {
+            Log.w(TAG, "fetchDailyResults: user not found")
             return
         }
         firestore
             .collection("results")
-            .document(uid)
+            .document(userId)
             .collection("daily")
             .addSnapshotListener { snaps, err ->
                 if (err != null) {
