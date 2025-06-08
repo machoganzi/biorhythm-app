@@ -150,9 +150,6 @@ class PPGWaveformView @JvmOverloads constructor(
             }
         }
 
-        // 신호 품질 업데이트
-//        updateSignalQuality()
-
         // 피크 감지 및 BPM 계산
         detectPeakAndCalculateBPM(value)
 
@@ -168,29 +165,6 @@ class PPGWaveformView @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun updateSignalQuality() {
-        if (dataPoints.size < 10) {
-            signalQuality = SignalQuality.NONE
-            signalStrength = 0f
-            return
-        }
-
-        // 신호 강도 계산 (변동성 기반)
-        val recent = dataPoints.takeLast(20)
-        val mean = recent.average()
-        val variance = recent.map { (it - mean).pow(2) }.average()
-        val stdDev = sqrt(variance).toFloat()
-
-        signalStrength = (stdDev / mean.toFloat()).coerceIn(0f, 1f)
-
-        signalQuality = when {
-            signalStrength < 0.1f -> SignalQuality.NONE
-            signalStrength < 0.3f -> SignalQuality.POOR
-            signalStrength < 0.6f -> SignalQuality.GOOD
-            else -> SignalQuality.EXCELLENT
-        }
-    }
-
     private fun getSignalColor(): Int {
         return when (signalQuality) {
             SignalQuality.NONE -> Color.parseColor("#94A3B8")
@@ -198,6 +172,22 @@ class PPGWaveformView @JvmOverloads constructor(
             SignalQuality.GOOD -> accentColor
             SignalQuality.EXCELLENT -> primaryColor
         }
+    }
+
+    // 🔥 개선된 색상 헬퍼 함수들
+    private fun getSignalColorWithAlpha(alpha: Int): Int {
+        val baseColor = getSignalColor()
+        return Color.argb(
+            alpha,
+            Color.red(baseColor),
+            Color.green(baseColor),
+            Color.blue(baseColor)
+        )
+    }
+
+    private fun getSignalColorHex(): String {
+        val baseColor = getSignalColor()
+        return String.format("#%06X", (0xFFFFFF and baseColor))
     }
 
     /**
@@ -305,14 +295,14 @@ class PPGWaveformView @JvmOverloads constructor(
             fillPath.lineTo(width - padding, height - padding)
             fillPath.close()
 
-            // 그라데이션 색상 설정
+            // 🔥 수정된 그라데이션 색상 설정
             val signalColor = getSignalColor()
 
-            // 채우기 그라데이션
+            // 채우기 그라데이션 (수정됨)
             val fillGradient = LinearGradient(
                 0f, padding, 0f, height - padding,
-                Color.parseColor("#20" + Integer.toHexString(signalColor).substring(2)),
-                Color.parseColor("#05" + Integer.toHexString(signalColor).substring(2)),
+                getSignalColorWithAlpha(51),  // 20% 투명도
+                getSignalColorWithAlpha(13),  // 5% 투명도
                 Shader.TileMode.CLAMP
             )
 
@@ -323,8 +313,8 @@ class PPGWaveformView @JvmOverloads constructor(
 
             canvas.drawPath(fillPath, fillPaint)
 
-            // 글로우 효과
-            waveGlowPaint.color = Color.parseColor("#40" + Integer.toHexString(signalColor).substring(2))
+            // 🔥 수정된 글로우 효과
+            waveGlowPaint.color = getSignalColorWithAlpha(102) // 40% 투명도
             canvas.drawPath(wavePath, waveGlowPaint)
 
             // 메인 파형
@@ -340,7 +330,7 @@ class PPGWaveformView @JvmOverloads constructor(
         val scanX = padding + scanLinePosition * (width - padding * 2)
 
         val scanPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#60" + Integer.toHexString(getSignalColor()).substring(2))
+            color = getSignalColorWithAlpha(153) // 60% 투명도
             strokeWidth = 2f
             style = Paint.Style.STROKE
         }
@@ -349,7 +339,7 @@ class PPGWaveformView @JvmOverloads constructor(
 
         // 스캔 라인 효과 (글로우)
         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#20" + Integer.toHexString(getSignalColor()).substring(2))
+            color = getSignalColorWithAlpha(51) // 20% 투명도
             strokeWidth = 8f
             style = Paint.Style.STROKE
         }

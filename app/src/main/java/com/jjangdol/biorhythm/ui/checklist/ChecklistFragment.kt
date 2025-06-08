@@ -11,10 +11,10 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.jjangdol.biorhythm.R
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.databinding.FragmentChecklistBinding
 import com.jjangdol.biorhythm.model.ChecklistResult
 import com.jjangdol.biorhythm.model.SafetyCheckSession
@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
@@ -38,6 +39,9 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
     private val checklistViewModel: ChecklistViewModel by viewModels()
     private val biorhythmViewModel: BiorhythmViewModel by viewModels()
     private val safetyCheckViewModel: SafetyCheckViewModel by activityViewModels()
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     private val dateFormatter = DateTimeFormatter.ISO_DATE
     private lateinit var sessionId: String
@@ -71,17 +75,29 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
                 .setDuration(1000L)
                 .start()
         }
-
     }
 
     private fun initializeSafetyCheckSession() {
-        val uid = Firebase.auth.currentUser?.uid ?: return
+        val userId = getUserId() ?: return
         val session = SafetyCheckSession(
             sessionId = sessionId,
-            userId = uid,
+            userId = userId,
             startTime = System.currentTimeMillis()
         )
         safetyCheckViewModel.startNewSession(session)
+    }
+
+    private fun getUserId(): String? {
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
     }
 
     private fun setupRecyclerView() {
@@ -191,11 +207,17 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
 
     private fun saveResultToFirestore(checklistScore: Int, bioIndex: Int) {
         val today = LocalDate.now().format(dateFormatter)
-        val uid = Firebase.auth.currentUser?.uid ?: return
+        val userId = getUserId()
+
+        if (userId == null) {
+            showError("사용자 정보를 찾을 수 없습니다")
+            return
+        }
+
         val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
         val result = ChecklistResult(
-            userId = uid,
+            userId = userId,
             name = prefs.getString("user_name", "") ?: "",
             dept = prefs.getString("user_dept", "") ?: "",
             checklistScore = checklistScore,
@@ -207,12 +229,12 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
         Firebase.firestore.collection("results")
             .document(today)
             .collection("entries")
-            .document(uid)
+            .document(userId)
             .set(result)
             .addOnSuccessListener {
-                // 중복으로 저장 (uid 기준)
+                // 중복으로 저장 (userId 기준)
                 Firebase.firestore.collection("results")
-                    .document(uid)
+                    .document(userId)
                     .collection("daily")
                     .document(today)
                     .set(result)

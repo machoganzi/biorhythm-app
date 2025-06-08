@@ -5,6 +5,7 @@ import android.content.Context
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.jjangdol.biorhythm.data.UserRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -19,18 +20,25 @@ import javax.inject.Singleton
  */
 @Singleton
 class UserNotificationRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val userRepository: UserRepository
 ) {
 
     private val firestore: FirebaseFirestore = Firebase.firestore
     private val userNotificationsCollection = firestore.collection("userNotifications")
 
-    // 현재 사용자 ID (실제로는 로그인 시스템에서 가져와야 함)
-    private fun getCurrentUserId(): String {
+    // 현재 사용자 ID (UserRepository를 통해 일관된 방식으로 생성)
+    private fun getCurrentUserId(): String? {
         val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        val name = prefs.getString("user_name", "") ?: ""
         val dept = prefs.getString("user_dept", "") ?: ""
-        return "${dept}_${name}".replace(" ", "_")
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
     }
 
     /**
@@ -38,6 +46,12 @@ class UserNotificationRepository @Inject constructor(
      */
     fun getReadNotificationIds(): Flow<Set<String>> = callbackFlow {
         val userId = getCurrentUserId()
+        if (userId == null) {
+            trySend(emptySet())
+            close()
+            return@callbackFlow
+        }
+
         val listener = userNotificationsCollection
             .document(userId)
             .addSnapshotListener { snapshot, error ->
@@ -63,7 +77,7 @@ class UserNotificationRepository @Inject constructor(
      */
     suspend fun markAsRead(notificationId: String): Result<Unit> {
         return try {
-            val userId = getCurrentUserId()
+            val userId = getCurrentUserId() ?: return Result.failure(Exception("사용자 정보를 찾을 수 없습니다"))
             val docRef = userNotificationsCollection.document(userId)
 
             firestore.runTransaction { transaction ->
@@ -91,7 +105,7 @@ class UserNotificationRepository @Inject constructor(
      */
     suspend fun markAllAsRead(): Result<Unit> {
         return try {
-            val userId = getCurrentUserId()
+            val userId = getCurrentUserId() ?: return Result.failure(Exception("사용자 정보를 찾을 수 없습니다"))
 
             // 모든 활성 알림 ID 가져오기
             val allNotificationIds = mutableListOf<String>()
@@ -119,7 +133,7 @@ class UserNotificationRepository @Inject constructor(
      */
     suspend fun markMultipleAsRead(notificationIds: List<String>): Result<Unit> {
         return try {
-            val userId = getCurrentUserId()
+            val userId = getCurrentUserId() ?: return Result.failure(Exception("사용자 정보를 찾을 수 없습니다"))
             val docRef = userNotificationsCollection.document(userId)
 
             firestore.runTransaction { transaction ->

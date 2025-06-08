@@ -29,12 +29,12 @@ class AdminResultsAdapter(
 
         fun bind(item: ChecklistResult) {
             textView.apply {
-                text = "${item.name} (${item.dept}) - ${item.finalScore}점"
+                text = "${item.name} (${item.dept}) - ${item.finalSafetyScore}점"
 
                 // 점수에 따른 색상 변경
                 setTextColor(when {
-                    item.finalScore < 50 -> android.graphics.Color.RED
-                    item.finalScore < 70 -> android.graphics.Color.parseColor("#FF9800")
+                    item.finalSafetyScore < 50 -> android.graphics.Color.RED
+                    item.finalSafetyScore < 70 -> android.graphics.Color.parseColor("#FF9800")
                     else -> android.graphics.Color.parseColor("#4CAF50")
                 })
 

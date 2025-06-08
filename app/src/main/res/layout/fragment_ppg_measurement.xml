@@ -367,7 +367,19 @@
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
                     android:layout_marginBottom="8dp"
-                    tools:text="심박 점수: 85점" />
+                    tools:text="85점" />
+
+                <!-- 🔥 추가: 안전 등급 표시 -->
+                <TextView
+                    android:id="@+id/tvWorkFitness"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_color"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone"
+                    tools:text="우수" />
 
                 <TextView
                     android:id="@+id/tvResultDetail"
@@ -377,7 +389,7 @@
                     android:textColor="@color/text_secondary"
                     android:gravity="center"
                     android:layout_marginBottom="16dp"
-                    tools:text="심박이 매우 안정적입니다" />
+                    tools:text="매우 우수한 심혈관 상태입니다" />
 
                 <!-- 측정 세부사항 -->
                 <LinearLayout

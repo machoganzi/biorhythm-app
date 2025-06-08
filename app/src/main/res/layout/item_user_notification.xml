@@ -200,22 +200,6 @@
                     app:icon="@drawable/ic_share"
                     app:iconSize="16dp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDelete"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="4dp"
-                    android:text="삭제"
-                    android:textSize="12sp"
-                    android:textColor="@color/safety_danger"
-                    app:strokeColor="@color/safety_danger"
-                    app:cornerRadius="8dp"
-                    app:icon="@drawable/ic_delete"
-                    app:iconSize="16dp"
-                    app:iconTint="@color/safety_danger" />
-
             </LinearLayout>
 
         </LinearLayout>

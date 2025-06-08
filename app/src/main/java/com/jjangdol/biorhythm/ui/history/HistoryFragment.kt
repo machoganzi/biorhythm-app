@@ -1,6 +1,7 @@
 package com.jjangdol.biorhythm.ui.history
 
 import android.app.DatePickerDialog
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -8,16 +9,17 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jjangdol.biorhythm.R
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.databinding.FragmentHistoryBinding
 import com.jjangdol.biorhythm.model.HistoryItem
 import com.jjangdol.biorhythm.model.SafetyLevel
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class HistoryFragment : Fragment(R.layout.fragment_history) {
@@ -25,8 +27,10 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
     private var _binding: FragmentHistoryBinding? = null
     private val binding get() = _binding!!
 
+    @Inject
+    lateinit var userRepository: UserRepository
+
     private lateinit var historyAdapter: HistoryAdapter
-    private val auth = Firebase.auth
     private val db = Firebase.firestore
     private val dateFormatter = DateTimeFormatter.ISO_DATE
 
@@ -129,10 +133,26 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
         }
     }
 
+    private fun getUserId(): String? {
+        val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
+    }
+
     private fun loadHistoryData() {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
-            Toast.makeText(requireContext(), "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
+        val userId = getUserId()
+        if (userId == null) {
+            Toast.makeText(requireContext(), "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
+            binding.progressBar.visibility = View.GONE
+            binding.emptyLayout.visibility = View.VISIBLE
+            binding.recyclerView.visibility = View.GONE
             return
         }
 
@@ -142,7 +162,7 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
 
         // Firestore에서 모든 daily 문서를 가져오기
         db.collection("results")
-            .document(uid)
+            .document(userId)
             .collection("daily")
             .get()
             .addOnSuccessListener { documents ->

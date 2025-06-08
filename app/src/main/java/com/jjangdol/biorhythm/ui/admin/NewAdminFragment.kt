@@ -18,6 +18,11 @@ import com.jjangdol.biorhythm.databinding.FragmentNewAdminBinding
 import com.jjangdol.biorhythm.data.ResultsRepository
 import com.jjangdol.biorhythm.model.ChecklistResult
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -37,6 +42,9 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
     private val firestore = FirebaseFirestore.getInstance()
 
     private lateinit var adminResultsAdapter: AdminResultsAdapter
+
+    private var dataObserverJob: Job? = null
+
     private var selectedDate: LocalDate = LocalDate.now()
     private var selectedScoreFilter: ScoreFilter = ScoreFilter.ALL
     private var allResults: List<ChecklistResult> = emptyList() // 캐시된 결과
@@ -63,7 +71,6 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
 
         // 현재 날짜 표시
         binding.btnDateFilter.text = selectedDate.format(DateTimeFormatter.ofPattern("MM-dd"))
-
     }
 
     private fun setupRecyclerView() {
@@ -119,7 +126,6 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
         binding.btnChangePassword.setOnClickListener {
             showChangePasswordDialog()
         }
-        
 
         // 체크리스트 문항 관리 버튼
         binding.btnManageChecklist.setOnClickListener {
@@ -135,27 +141,41 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
         }
     }
 
-    // 실제 데이터 관찰
     private fun observeData() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                // 선택된 날짜에 따라 다른 메서드 사용
-                resultsRepository.watchResultsByDate(selectedDate).collectLatest { results ->
-                    allResults = results
-                    applyFilters()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "데이터 로딩 실패: ${e.message}", Toast.LENGTH_LONG).show()
+        // 이전 Job 취소
+        dataObserverJob?.cancel()
 
-                // 에러 시 빈 상태 표시
-                allResults = emptyList()
-                applyFilters()
+        dataObserverJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    // 선택된 날짜에 따라 다른 메서드 사용
+                    resultsRepository.watchResultsByDate(selectedDate).collectLatest { results ->
+                        // Fragment가 여전히 활성 상태인지 확인
+                        if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                            allResults = results
+                            applyFilters()
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    // Job이 취소된 경우는 정상적인 상황이므로 무시
+                    android.util.Log.d("NewAdminFragment", "Data observation cancelled")
+                } catch (e: Exception) {
+                    // 실제 에러인 경우만 처리
+                    if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                        Toast.makeText(requireContext(), "데이터 로딩 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                        // 에러 시 빈 상태 표시
+                        allResults = emptyList()
+                        applyFilters()
+                    }
+                }
             }
         }
     }
 
-    // 필터 적용
     private fun applyFilters() {
+        // Fragment가 여전히 활성 상태인지 확인
+        if (!isAdded || _binding == null) return
+
         val filteredResults = when (selectedScoreFilter) {
             ScoreFilter.DANGER -> allResults.filter { it.finalSafetyScore < 50 }
             ScoreFilter.CAUTION -> allResults.filter { it.finalSafetyScore in 50..69 }
@@ -176,6 +196,9 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
     }
 
     private fun updateStatistics(results: List<ChecklistResult>) {
+        // Fragment가 여전히 활성 상태인지 확인
+        if (!isAdded || _binding == null) return
+
         val dangerCount = results.count { it.finalSafetyScore < 50 }
         val cautionCount = results.count { it.finalSafetyScore in 50..69 }
         val safeCount = results.count { it.finalSafetyScore >= 70 }
@@ -214,9 +237,6 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
             appendLine("최종 안전 점수: ${result.finalSafetyScore}점")
             appendLine("체크리스트 점수: ${result.checklistScore}점")
             appendLine("바이오리듬 지수: ${result.biorhythmIndex}")
-            if (result.finalScore != 0) {
-                appendLine("기본 최종 점수: ${result.finalScore}점")
-            }
             appendLine()
 
             appendLine("=== 생체신호 측정 ===")
@@ -289,7 +309,9 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
                 callback(inputPassword == savedPassword)
             }
             .addOnFailureListener { exception ->
-                Toast.makeText(requireContext(), "비밀번호 확인 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                    Toast.makeText(requireContext(), "비밀번호 확인 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                }
                 callback(false)
             }
     }
@@ -302,10 +324,14 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
             .document("admin")
             .set(passwordData)
             .addOnSuccessListener {
-                Toast.makeText(requireContext(), "비밀번호가 성공적으로 변경되었습니다", Toast.LENGTH_SHORT).show()
+                if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                    Toast.makeText(requireContext(), "비밀번호가 성공적으로 변경되었습니다", Toast.LENGTH_SHORT).show()
+                }
             }
             .addOnFailureListener { exception ->
-                Toast.makeText(requireContext(), "비밀번호 변경 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                    Toast.makeText(requireContext(), "비밀번호 변경 실패: ${exception.message}", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 
@@ -324,16 +350,27 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
                         // 현재 비밀번호가 맞으면 새 비밀번호로 업데이트
                         updatePasswordInFirebase(new)
                     } else {
-                        Toast.makeText(requireContext(), "현재 비밀번호가 올바르지 않습니다", Toast.LENGTH_SHORT).show()
+                        if (isAdded && _binding != null && !requireActivity().isFinishing) {
+                            Toast.makeText(requireContext(), "현재 비밀번호가 올바르지 않습니다", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
         }
     }
 
-
+    override fun onDestroy() {
+        // Job 명시적으로 취소
+        dataObserverJob?.cancel()
+        dataObserverJob = null
+        super.onDestroy()
+    }
 
     override fun onDestroyView() {
+        // Job 명시적으로 취소
+        dataObserverJob?.cancel()
+        dataObserverJob = null
+
         super.onDestroyView()
         _binding = null
     }

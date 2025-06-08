@@ -1,14 +1,15 @@
 package com.jjangdol.biorhythm.vm
 
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjangdol.biorhythm.data.UserRepository
 import com.jjangdol.biorhythm.model.*
 import com.jjangdol.biorhythm.util.ScoreCalculator
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SafetyCheckViewModel @Inject constructor(
-    private val firestore: FirebaseFirestore
-) : ViewModel() {
+    private val firestore: FirebaseFirestore,
+    private val userRepository: UserRepository,
+    private val application: Application
+) : AndroidViewModel(application) {
 
     private val _currentSession = MutableStateFlow<SafetyCheckSession?>(null)
     val currentSession: StateFlow<SafetyCheckSession?> = _currentSession.asStateFlow()
@@ -51,6 +54,32 @@ class SafetyCheckViewModel @Inject constructor(
         object Loading : SessionState()
         data class Success(val message: String) : SessionState()
         data class Error(val message: String) : SessionState()
+    }
+
+    private fun getUserId(): String? {
+        val prefs = application.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            userRepository.getUserId(dept, name, dob)
+        } else {
+            null
+        }
+    }
+
+    private fun getUserProfile(): Triple<String, String, String>? {
+        val prefs = application.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val dept = prefs.getString("user_dept", "") ?: ""
+        val name = prefs.getString("user_name", "") ?: ""
+        val dob = prefs.getString("dob", "") ?: ""
+
+        return if (dept.isNotEmpty() && name.isNotEmpty() && dob.isNotEmpty()) {
+            Triple(dept, name, dob)
+        } else {
+            null
+        }
     }
 
     fun startNewSession(session: SafetyCheckSession) {
@@ -132,12 +161,10 @@ class SafetyCheckViewModel @Inject constructor(
 
             try {
                 val session = _currentSession.value ?: throw Exception("세션이 없습니다")
-                val uid = Firebase.auth.currentUser?.uid ?: throw Exception("로그인이 필요합니다")
+                val userId = getUserId() ?: throw Exception("사용자 정보를 찾을 수 없습니다")
+                val userProfile = getUserProfile() ?: throw Exception("사용자 프로필을 찾을 수 없습니다")
 
-                // 사용자 정보 가져오기
-                val userDoc = firestore.collection("users").document(uid).get().await()
-                val userName = userDoc.getString("name") ?: ""
-                val userDept = userDoc.getString("dept") ?: ""
+                val (dept, name, _) = userProfile
 
                 // 저장된 점수 사용
                 val checklistScore = savedChecklistScore
@@ -170,9 +197,9 @@ class SafetyCheckViewModel @Inject constructor(
 
                 // 최종 결과 객체 생성
                 val result = SafetyCheckResult(
-                    userId = uid,
-                    name = userName,
-                    dept = userDept,
+                    userId = userId,
+                    name = name,
+                    dept = dept,
                     checklistScore = checklistScore,
                     biorhythmIndex = biorhythmIndex,
                     tremorScore = tremorScore,
@@ -237,19 +264,19 @@ class SafetyCheckViewModel @Inject constructor(
 
     private suspend fun saveResultToFirestore(result: SafetyCheckResult) {
         val today = result.date
-        val uid = result.userId
+        val userId = result.userId
 
         // 기존 구조 유지 (일별 결과)
         firestore.collection("results")
             .document(today)
             .collection("entries")
-            .document(uid)
+            .document(userId)
             .set(result)
             .await()
 
         // 사용자별 이력
         firestore.collection("results")
-            .document(uid)
+            .document(userId)
             .collection("daily")
             .document(today)
             .set(result)
@@ -259,7 +286,7 @@ class SafetyCheckViewModel @Inject constructor(
         val sessionId = _currentSession.value?.sessionId ?: ""
         if (sessionId.isNotEmpty()) {
             firestore.collection("safety_checks")
-                .document(uid)
+                .document(userId)
                 .collection("sessions")
                 .document(sessionId)
                 .set(mapOf(

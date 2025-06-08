@@ -8,6 +8,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.jjangdol.biorhythm.R
 import com.jjangdol.biorhythm.databinding.FragmentAdminChecklistManagementBinding
@@ -29,10 +30,18 @@ class AdminChecklistManagementFragment : Fragment(R.layout.fragment_admin_checkl
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentAdminChecklistManagementBinding.bind(view)
 
+        setupToolbar()
         setupUI()
         setupRecyclerView()
         setupClickListeners()
         observeData()
+    }
+
+
+    private fun setupToolbar() {
+        binding.toolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
+        }
     }
 
     private fun setupUI() {
@@ -124,4 +133,8 @@ class AdminChecklistManagementFragment : Fragment(R.layout.fragment_admin_checkl
             .show()
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 }
