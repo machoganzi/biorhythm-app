@@ -33,21 +33,18 @@ class SafetyCheckViewModel @Inject constructor(
     private val _sessionState = MutableLiveData<SessionState>(SessionState.Idle)
     val sessionState: LiveData<SessionState> = _sessionState
 
-    // 🔥 체크리스트 상태 관리용 LiveData 추가
+    // 체크리스트 상태 관리용 LiveData 추가
     private val _checklistAnswers = MutableLiveData<MutableMap<String, Any>>(mutableMapOf())
     val checklistAnswers: LiveData<MutableMap<String, Any>> = _checklistAnswers
 
     private val _checklistScore = MutableLiveData<Int>(0)
     val checklistScore: LiveData<Int> = _checklistScore
 
-    private val _biorhythmIndex = MutableLiveData<Int>(0)
-    val biorhythmIndex: LiveData<Int> = _biorhythmIndex
 
     private val dateFormatter = DateTimeFormatter.ISO_DATE
 
     // 체크리스트 점수를 메모리에 저장
     private var savedChecklistScore: Int = 0
-    private var savedBiorhythmIndex: Int = 0
 
     sealed class SessionState {
         object Idle : SessionState()
@@ -88,16 +85,13 @@ class SafetyCheckViewModel @Inject constructor(
 
     fun updateChecklistResults(
         checklistItems: List<ChecklistItem>,
-        checklistScore: Int,
-        biorhythmIndex: Int
+        checklistScore: Int
     ) {
         // 점수를 메모리에 저장
         this.savedChecklistScore = checklistScore
-        this.savedBiorhythmIndex = biorhythmIndex
 
         // LiveData 업데이트
         _checklistScore.value = checklistScore
-        _biorhythmIndex.value = biorhythmIndex
 
         _currentSession.value?.let { session ->
             _currentSession.value = session.copy(
@@ -106,23 +100,21 @@ class SafetyCheckViewModel @Inject constructor(
         }
     }
 
-    // 🔥 체크리스트 답변 업데이트 메서드
+    // 체크리스트 답변 업데이트 메서드
     fun updateChecklistAnswer(questionId: String, answer: Any) {
         val currentAnswers = _checklistAnswers.value ?: mutableMapOf()
         currentAnswers[questionId] = answer
         _checklistAnswers.value = currentAnswers
     }
 
-    // 🔥 체크리스트 초기화 메서드
+    // 체크리스트 초기화 메서드
     fun resetChecklist() {
         // 체크리스트 관련 모든 상태 초기화
         _checklistAnswers.value = mutableMapOf()
         _checklistScore.value = 0
-        _biorhythmIndex.value = 0
 
         // 저장된 점수도 초기화
         savedChecklistScore = 0
-        savedBiorhythmIndex = 0
 
         // 현재 세션의 체크리스트 결과도 초기화
         _currentSession.value?.let { session ->
@@ -132,7 +124,7 @@ class SafetyCheckViewModel @Inject constructor(
         }
     }
 
-    // 🔥 체크리스트 완료 상태 확인 메서드
+    // 체크리스트 완료 상태 확인 메서드
     fun isChecklistCompleted(): Boolean {
         val answers = _checklistAnswers.value ?: return false
         // 필수 질문들이 모두 답변되었는지 확인하는 로직
@@ -168,7 +160,6 @@ class SafetyCheckViewModel @Inject constructor(
 
                 // 저장된 점수 사용
                 val checklistScore = savedChecklistScore
-                val biorhythmIndex = savedBiorhythmIndex
 
                 // 측정 결과 점수 추출
                 val tremorScore = session.measurementResults
@@ -181,7 +172,6 @@ class SafetyCheckViewModel @Inject constructor(
                 // 최종 안전 점수 계산
                 val finalScore = ScoreCalculator.calcFinalSafetyScore(
                     checklistScore = checklistScore,
-                    biorhythmIndex = biorhythmIndex,
                     tremorScore = tremorScore,
                     pupilScore = pupilScore,
                     ppgScore = ppgScore
@@ -201,7 +191,6 @@ class SafetyCheckViewModel @Inject constructor(
                     name = name,
                     dept = dept,
                     checklistScore = checklistScore,
-                    biorhythmIndex = biorhythmIndex,
                     tremorScore = tremorScore,
                     pupilScore = pupilScore,
                     ppgScore = ppgScore,
@@ -297,14 +286,14 @@ class SafetyCheckViewModel @Inject constructor(
         }
     }
 
-    // 🔥 개선된 세션 클리어 메서드
+    // 세션 클리어 메서드
     fun clearSession() {
         _currentSession.value = null
         _sessionState.value = SessionState.Idle
         // 체크리스트는 별도 메서드로 초기화하므로 여기서는 세션만 초기화
     }
 
-    // 🔥 완전 초기화 메서드 (모든 상태 초기화)
+    // 완전 초기화 메서드 (모든 상태 초기화)
     fun clearAll() {
         clearSession()
         resetChecklist()

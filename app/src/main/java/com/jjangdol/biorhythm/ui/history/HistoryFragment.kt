@@ -177,7 +177,6 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
                         val historyItem = HistoryItem(
                             date = document.id, // 문서 ID가 날짜 (예: 2025-06-02)
                             checklistScore = document.getLong("checklistScore")?.toInt() ?: 0,
-                            biorhythmIndex = document.getLong("biorhythmIndex")?.toInt() ?: 0,
                             tremorScore = document.getDouble("tremorScore")?.toFloat() ?: 0f,
                             pupilScore = document.getDouble("pupilScore")?.toFloat() ?: 0f,
                             ppgScore = document.getDouble("ppgScore")?.toFloat() ?: 0f,

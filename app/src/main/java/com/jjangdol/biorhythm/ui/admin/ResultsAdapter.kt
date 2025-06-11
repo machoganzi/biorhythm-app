@@ -32,7 +32,6 @@ class ResultsAdapter : ListAdapter<ChecklistResult, ResultsAdapter.VH>(DIFF_CALL
             b.tvName.text = r.name
             b.tvDept.text = r.dept
             b.tvChecklistScore.text = r.checklistScore.toString()
-            b.tvBioIndex.text = r.biorhythmIndex.toString()
             b.tvFinalScore.text = r.finalScore.toString()
             b.tvDate.text = r.date
         }

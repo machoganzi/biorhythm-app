@@ -19,7 +19,6 @@ import com.jjangdol.biorhythm.databinding.FragmentChecklistBinding
 import com.jjangdol.biorhythm.model.ChecklistResult
 import com.jjangdol.biorhythm.model.SafetyCheckSession
 import com.jjangdol.biorhythm.util.ScoreCalculator
-import com.jjangdol.biorhythm.vm.BiorhythmViewModel
 import com.jjangdol.biorhythm.vm.ChecklistViewModel
 import com.jjangdol.biorhythm.vm.SafetyCheckViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,7 +36,6 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
     private val binding get() = _binding!!
 
     private val checklistViewModel: ChecklistViewModel by viewModels()
-    private val biorhythmViewModel: BiorhythmViewModel by viewModels()
     private val safetyCheckViewModel: SafetyCheckViewModel by activityViewModels()
 
     @Inject
@@ -138,7 +136,6 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
         val prefs = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         val dobStr = prefs.getString("dob", LocalDate.now().format(dateFormatter))!!
         val dob = LocalDate.parse(dobStr, dateFormatter)
-        biorhythmViewModel.load(dob)
     }
 
     private fun setupSubmitButton() = with(binding) {
@@ -178,26 +175,14 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
                 val items = checklistViewModel.items.value
                 val checklistScore = ScoreCalculator.calcChecklistScore(items)
 
-                // 2) 오늘자 바이오리듬
-                val today = LocalDate.now()
-                val todayData = biorhythmViewModel.data.value
-                    .firstOrNull { it.date == today }
-
-                if (todayData == null) {
-                    showError("바이오리듬 데이터를 불러올 수 없습니다")
-                    return@launch
-                }
-                val bioIndex = ScoreCalculator.calcBiorhythmIndex(todayData)
-
-                // 3) 세션 업데이트
+                // 2) 세션 업데이트
                 safetyCheckViewModel.updateChecklistResults(
                     checklistItems = items,
                     checklistScore = checklistScore,
-                    biorhythmIndex = bioIndex
                 )
 
-                // 4) Firebase 기록 (호환용)
-                saveResultToFirestore(checklistScore, bioIndex)
+                // 3) Firebase 기록 (호환용)
+                saveResultToFirestore(checklistScore)
 
             } catch (e: Exception) {
                 showError("오류가 발생했습니다: ${e.message}")
@@ -205,7 +190,7 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
         }
     }
 
-    private fun saveResultToFirestore(checklistScore: Int, bioIndex: Int) {
+    private fun saveResultToFirestore(checklistScore: Int) {
         val today = LocalDate.now().format(dateFormatter)
         val userId = getUserId()
 
@@ -221,8 +206,7 @@ class ChecklistFragment : Fragment(R.layout.fragment_checklist) {
             name = prefs.getString("user_name", "") ?: "",
             dept = prefs.getString("user_dept", "") ?: "",
             checklistScore = checklistScore,
-            biorhythmIndex = bioIndex,
-            finalScore = ScoreCalculator.calcFinalScore(checklistScore, bioIndex),
+            finalScore = checklistScore,
             date = today
         )
 

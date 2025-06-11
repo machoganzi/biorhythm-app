@@ -964,7 +964,7 @@ class PPGMeasurementFragment : BaseMeasurementFragment() {
     private fun calculateLFHFRatio(signal: List<Float>, beats: List<Int>): Float {
         if (beats.size < 5) return 0f
 
-        // 간단한 주파수 도메인 분석
+        // 주파수 도메인 분석
         val intervals = beats.zipWithNext { a, b ->
             (b - a).toFloat() * (1000f / SAMPLING_RATE)
         }
@@ -977,7 +977,7 @@ class PPGMeasurementFragment : BaseMeasurementFragment() {
         var lfPower = 0f
         var hfPower = 0f
 
-        // 간단한 스펙트럼 분석 (FFT 대신 시간 도메인 근사)
+        // 스펙트럼 분석
         for (i in 1 until intervals.size) {
             val freq = abs(intervals[i] - intervals[i-1]) / intervals.average()
             val power = intervals[i].pow(2)

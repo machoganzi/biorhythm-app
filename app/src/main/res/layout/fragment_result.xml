@@ -133,29 +133,6 @@
 
                         </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="center"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="바이오리듬"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:id="@+id/tvBioIndex"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textSize="24sp"
-                                android:textStyle="bold"
-                                tools:text="75" />
-
-                        </LinearLayout>
-
                     </LinearLayout>
 
                 </LinearLayout>

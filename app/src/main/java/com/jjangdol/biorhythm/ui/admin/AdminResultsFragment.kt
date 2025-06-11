@@ -108,7 +108,6 @@ class AdminResultsFragment : Fragment(R.layout.fragment_admin_results) {
             appendLine("=== 점수 상세 ===")
             appendLine("최종 안전 점수: ${item.finalSafetyScore}점")
             appendLine("체크리스트 점수: ${item.checklistScore}점")
-            appendLine("바이오리듬 지수: ${item.biorhythmIndex}")
             appendLine()
 
             appendLine("=== 생체신호 측정 ===")

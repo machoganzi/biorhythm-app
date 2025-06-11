@@ -1,7 +1,6 @@
 package com.jjangdol.biorhythm.util
 
 import com.jjangdol.biorhythm.model.ChecklistItem
-import com.jjangdol.biorhythm.model.BiorhythmData
 import com.jjangdol.biorhythm.model.SafetyLevel
 import kotlin.math.absoluteValue
 
@@ -19,29 +18,11 @@ object ScoreCalculator {
         }
     }
 
-    /**
-     * 바이오리듬 데이터를 0~100 사이의 인덱스로 환산
-     */
-    fun calcBiorhythmIndex(data: BiorhythmData): Int {
-        val sum = data.physical.absoluteValue +
-                data.emotional.absoluteValue +
-                data.intellectual.absoluteValue
-        val avg = sum / 3.0
-        return (avg * 100).toInt()
-    }
-
-    /**
-     * 체크리스트 점수와 바이오리듬 인덱스를 결합하여 최종 점수 산출 (기존 호환성 유지)
-     */
-    fun calcFinalScore(checklistScore: Int, bioIndex: Int): Int {
-        return (checklistScore + bioIndex) / 2
-    }
 
     /**
      * 모든 측정 결과를 포함한 최종 안전 점수 계산
      *
      * @param checklistScore 체크리스트 점수 (0-100)
-     * @param biorhythmIndex 바이오리듬 지수 (0-100)
      * @param tremorScore 손떨림 측정 점수 (0-100)
      * @param pupilScore 피로도 측정 점수 (0-100)
      * @param ppgScore 심박 측정 점수 (0-100)
@@ -49,17 +30,15 @@ object ScoreCalculator {
      */
     fun calcFinalSafetyScore(
         checklistScore: Int,
-        biorhythmIndex: Int,
         tremorScore: Float,
         pupilScore: Float,
         ppgScore: Float
     ): Float {
         // 각 항목별 가중치
-        val checklistWeight = 0.25f
-        val biorhythmWeight = 0.15f
-        val tremorWeight = 0.25f
+        val checklistWeight = 0.40f
+        val tremorWeight = 0.20f
         val pupilWeight = 0.20f
-        val ppgWeight = 0.15f
+        val ppgWeight = 0.20f
 
         // 측정값이 0인 경우 (건너뛴 경우) 가중치 재분배
         var totalWeight = 0f
@@ -70,10 +49,6 @@ object ScoreCalculator {
             totalWeight += checklistWeight
         }
 
-        if (biorhythmIndex > 0) {
-            weightedSum += biorhythmIndex * biorhythmWeight
-            totalWeight += biorhythmWeight
-        }
 
         if (tremorScore > 0) {
             weightedSum += tremorScore * tremorWeight
