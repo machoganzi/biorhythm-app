@@ -19,12 +19,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         _binding = FragmentMainBinding.bind(view)
 
-        // 2) childFragmentManager 에서 NavController 가져오기
+        // 1) childFragmentManager 에서 NavController 가져오기
         val navHost = childFragmentManager
             .findFragmentById(R.id.bottomNavHost) as NavHostFragment
         val navController = navHost.navController
 
-        // 3) BottomNavigationView 와 NavController 연결
+        // 2) BottomNavigationView 와 NavController 연결
         binding.bottomNav.setupWithNavController(navController)
     }
 

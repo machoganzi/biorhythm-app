@@ -60,7 +60,6 @@ class HistoryAdapter(
 
                 // 개별 점수들
                 tvChecklistScore.text = item.checklistScore.toString()
-                tvBioScore.text = item.biorhythmIndex.toString()
                 tvTremorScore.text = if (item.tremorScore > 0) {
                     item.tremorScore.toInt().toString()
                 } else {

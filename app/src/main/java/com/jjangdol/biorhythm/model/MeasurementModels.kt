@@ -38,7 +38,6 @@ data class SafetyCheckResult(
     val name: String = "",
     val dept: String = "",
     val checklistScore: Int = 0,
-    val biorhythmIndex: Int = 0,
     val tremorScore: Float = 0f,
     val pupilScore: Float = 0f,
     val ppgScore: Float = 0f,

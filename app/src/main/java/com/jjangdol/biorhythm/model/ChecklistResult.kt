@@ -11,7 +11,6 @@ data class ChecklistResult(
 
     // 점수 관련
     val checklistScore: Int = 0,
-    val biorhythmIndex: Int = 0,
     val finalScore: Int = 0,  // 기존 필드 유지
 
     // 생체신호 점수들 (실제 DB에 있는 필드들)

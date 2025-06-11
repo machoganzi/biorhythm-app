@@ -236,7 +236,6 @@ class NewAdminFragment : Fragment(R.layout.fragment_new_admin) {
             appendLine("=== 점수 상세 ===")
             appendLine("최종 안전 점수: ${result.finalSafetyScore}점")
             appendLine("체크리스트 점수: ${result.checklistScore}점")
-            appendLine("바이오리듬 지수: ${result.biorhythmIndex}")
             appendLine()
 
             appendLine("=== 생체신호 측정 ===")

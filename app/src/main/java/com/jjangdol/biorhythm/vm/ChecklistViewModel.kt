@@ -51,13 +51,11 @@ class ChecklistViewModel @Inject constructor(
     /**
      * 사용자가 pos 위치 항목에 Yes/No 선택(yes)을 변경했을 때 호출
      */
-    fun answerChanged(pos: Int, yes: Boolean) {
-        val current = _items.value.toMutableList()
-        if (pos in current.indices) {
-            // copy(answeredYes = yes) 로 변경
-            current[pos] = current[pos].copy(answeredYes = yes)
-            _items.value = current
-        }
+    fun answerChanged(position: Int, isYes: Boolean) {
+        val updatedList = items.value.toMutableList()
+        val item = updatedList[position]
+        updatedList[position] = item.copy(answeredYes = isYes)
+        _items.value = updatedList  // id 유지됨
     }
 }
 

@@ -146,7 +146,6 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
 
     private fun displayResults(document: com.google.firebase.firestore.DocumentSnapshot) {
         val checklistScore = document.getLong("checklistScore")?.toInt() ?: 0
-        val bioIndex = document.getLong("biorhythmIndex")?.toInt() ?: 0
         val tremorScore = document.getDouble("tremorScore")?.toFloat() ?: 0f
         val pupilScore = document.getDouble("pupilScore")?.toFloat() ?: 0f
         val ppgScore = document.getDouble("ppgScore")?.toFloat() ?: 0f
@@ -158,7 +157,6 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
 
         // 기본 점수 표시
         binding.tvChecklistScore.text = checklistScore.toString()
-        binding.tvBioIndex.text = bioIndex.toString()
 
         // 측정 점수 표시
         binding.tvTremorScore.text = if (tremorScore > 0) "${tremorScore.toInt()}점" else "미측정"
@@ -186,8 +184,8 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
         }
 
         // 차트 설정
-        setupRadarChart(checklistScore, bioIndex, tremorScore, pupilScore, ppgScore)
-        setupBarChart(checklistScore, bioIndex, tremorScore, pupilScore, ppgScore, finalScore)
+        setupRadarChart(checklistScore, tremorScore, pupilScore, ppgScore)
+        setupBarChart(checklistScore, tremorScore, pupilScore, ppgScore, finalScore)
 
         // 위험 요소 분석
         val riskFactors = ScoreCalculator.identifyRiskFactors(tremorScore, pupilScore, ppgScore)
@@ -200,11 +198,10 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     }
 
     private fun setupRadarChart(
-        checklist: Int, bio: Int, tremor: Float, pupil: Float, ppg: Float
+        checklist: Int, tremor: Float, pupil: Float, ppg: Float
     ) {
         val entries = listOf(
             RadarEntry(checklist.toFloat()),
-            RadarEntry(bio.toFloat()),
             RadarEntry(tremor),
             RadarEntry(pupil),
             RadarEntry(ppg)
@@ -234,7 +231,7 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
                 yOffset = 0f
                 xOffset = 0f
                 valueFormatter = IndexAxisValueFormatter(
-                    listOf("체크리스트", "바이오리듬", "손떨림", "피로도", "심박")
+                    listOf("체크리스트", "손떨림", "피로도", "심박")
                 )
             }
 
@@ -252,21 +249,19 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     }
 
     private fun setupBarChart(
-        checklist: Int, bio: Int, tremor: Float,
+        checklist: Int, tremor: Float,
         pupil: Float, ppg: Float, final: Float
     ) {
         val entries = listOf(
             BarEntry(0f, checklist.toFloat()),
-            BarEntry(1f, bio.toFloat()),
-            BarEntry(2f, tremor),
-            BarEntry(3f, pupil),
-            BarEntry(4f, ppg),
-            BarEntry(5f, final)
+            BarEntry(1f, tremor),
+            BarEntry(2f, pupil),
+            BarEntry(3f, ppg),
+            BarEntry(4f, final)
         )
 
         val colors = listOf(
             Color.parseColor("#4CAF50"),
-            Color.parseColor("#2196F3"),
             Color.parseColor("#FF9800"),
             Color.parseColor("#9C27B0"),
             Color.parseColor("#F44336"),
@@ -287,7 +282,7 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
                 position = XAxis.XAxisPosition.BOTTOM
                 granularity = 1f
                 valueFormatter = IndexAxisValueFormatter(
-                    listOf("체크리스트", "바이오리듬", "손떨림", "피로도", "심박", "최종")
+                    listOf("체크리스트", "손떨림", "피로도", "심박", "최종")
                 )
                 setDrawGridLines(false)
             }
@@ -309,12 +304,12 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
         val isFromMeasurement = args.sessionId != null
 
         if (isFromMeasurement) {
-            // 🔥 측정 완료 후 결과 - 홈과 기록 버튼만 표시 (다시 측정 버튼 제거)
+            // 측정 완료 후 결과 - 홈과 기록 버튼만 표시 (다시 측정 버튼 제거)
             binding.btnHome.visibility = View.VISIBLE
             binding.btnRetry.visibility = View.GONE  // 다시 측정 버튼 숨기기
             binding.btnHistory.visibility = View.VISIBLE
 
-            // 🔥 홈으로 가기 버튼 - 체크리스트 초기화하고 메인 화면으로 이동
+            // 홈으로 가기 버튼 - 체크리스트 초기화하고 메인 화면으로 이동
             binding.btnHome.setOnClickListener {
                 try {
                     // 1. 세션과 체크리스트 상태 초기화
@@ -377,7 +372,7 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        // 🔥 세션 클리어 - 측정 완료 후에만
+        // 세션 클리어 - 측정 완료 후에만
         if (args.sessionId != null) {
             safetyCheckViewModel.clearSession()
         }
