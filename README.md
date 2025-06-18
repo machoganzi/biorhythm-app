@@ -74,7 +74,7 @@ app/
 
 | 메인 화면 | 분석 결과 | 관리자 화면 |             
 |-------|-------|--------|
-| ![checklist](./screenshots/checklist.jpg) | ![result](./screenshots/result.jpg) | ![master](./screenshots/master.jpg) |
+| ![checklist](./app/screenshots/checklist.jpg) | ![result](./app/screenshots/result.jpg) | ![master](./app/screenshots/master.jpg) |
 
 ---
 
