@@ -41,7 +41,7 @@ app/
     │   ├── model/         # 데이터 클래스
     │   ├── ui/
     │   │   ├── checklist/
-    │   │   ├── measurement/   # PPG·떨림 측정 화면
+    │   │   ├── measurement/   # PPG·떨림·피로도 측정 화면
     │   │   ├── result/
     │   │   ├── admin/
     │   │   └── ...
