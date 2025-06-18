@@ -16,6 +16,7 @@
         android:layout_height="wrap_content"
         android:text="문항 텍스트"
         android:textColor="#212121"
+        android:gravity="center"
         android:textStyle="bold"
         android:textSize="18sp"
         android:paddingBottom="12dp"
