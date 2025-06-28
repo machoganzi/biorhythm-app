@@ -1,5 +1,5 @@
 // ==========================
-// app/build.gradle.kts
+// app/build.gradle.kts  (updated with release signing config)
 // ==========================
 plugins {
     id("com.android.application")
@@ -25,13 +25,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    /**
+     * ▶▶  릴리즈 키 설정 ◀◀
+     */
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:/Users/vnvnd/Desktop/key/mykey.jks")
+            storePassword = "111111"   // TODO: 교체
+            keyAlias = "key0"                       // TODO: 별칭 확인 후 교체
+            keyPassword = "111111"       // TODO: 교체
+        }
+    }
+
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 릴리즈 빌드에 서명 정보 적용
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -50,10 +64,19 @@ android {
     /* Kotlin 2.1.x ↔ Compose Compiler 1.6.14 이상 호환 */
     composeOptions { kotlinCompilerExtensionVersion = "1.6.14" }
 
-    packagingOptions {
-        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    /**
+     * Gradle 8.0+ 에서는 packagingOptions 대신 packaging 블록 사용 권장.
+     */
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
+
+// ==========================
+// Dependencies (그대로 유지)
+// ==========================
 
 dependencies {
     /* --- AndroidX Core --- */
@@ -118,8 +141,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    implementation ("com.github.wendykierp:JTransforms:3.1")
-    implementation ("com.google.code.gson:gson:2.10.1")
+    implementation("com.github.wendykierp:JTransforms:3.1")
+    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 kapt { correctErrorTypes = true }
