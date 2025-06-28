@@ -31,6 +31,7 @@ class ChecklistAdapter(
                 if (isChecked) {
                     adapterPosition.takeIf { it != RecyclerView.NO_POSITION }?.let {
                         onAnswerChanged(it, true)
+                        notifyItemChanged(adapterPosition)
                     }
                 }
             }
@@ -39,6 +40,7 @@ class ChecklistAdapter(
                 if (isChecked) {
                     adapterPosition.takeIf { it != RecyclerView.NO_POSITION }?.let {
                         onAnswerChanged(it, false)
+                        notifyItemChanged(adapterPosition)
                     }
                 }
             }
